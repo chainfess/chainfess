@@ -21,3 +21,4 @@ marketing/
 .deploy-host
 SAMPLE-SESSION-PLAN.md
 .claude/
+local-run/
