@@ -40,8 +40,9 @@ rsync -a --delete --no-owner --no-group "${EXCLUDES[@]}" "${SRC[@]}" "$HOST:/opt
 if [ -n "$DEFAULT_TOKEN" ]; then rsync -a --no-owner --no-group "$DEFAULT_TOKEN/token.json" "$HOST:/opt/chainfess/web/token.json"; rm -rf "$DEFAULT_TOKEN"
 else rsync -a --no-owner --no-group web/token.json "$HOST:/opt/chainfess/web/token.json"; fi
 if [ $NO_WEB = 0 ] && [ -d web/dist ]; then
-  rsync -a --delete --no-owner --no-group --chmod=D755,F644 --exclude 'wallet*' --exclude 'WALLETS*' --exclude '.env*' web/dist/ "$HOST:/opt/chainfess/web/dist/"
+  rsync -a --delete --no-owner --no-group --exclude 'wallet*' --exclude 'WALLETS*' --exclude '.env*' --exclude '.npmrc' web/dist/ "$HOST:/opt/chainfess/web/dist/"
   [ -f web/token.json ] && rsync -a --no-owner --no-group web/token.json "$HOST:/opt/chainfess/web/dist/token.json"
+  ssh "$HOST" "find /opt/chainfess/web/dist -type d -exec chmod 755 {} + ; find /opt/chainfess/web/dist -type f -exec chmod 644 {} +"
 fi
 
 # 4. install units + nginx, restart our two services, certbot if needed
