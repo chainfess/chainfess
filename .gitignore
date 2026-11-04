@@ -1,0 +1,21 @@
+wallet*
+WALLETS*
+.env*
+node_modules/
+state/
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+web/dist/
+BRIEF*.md
+RISET-DAN-ARSITEKTUR.md
+STATUS*.md
+.npmrc
+
+# local working notes, not public
+SPIKE.md
+CONTRACTS.md
+MEDIA-STATUS*.md
+marketing/
+.deploy-host
