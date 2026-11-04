@@ -83,7 +83,7 @@ function auditOptsFrom(values, io) {
 
 function printDebug(io, audit) {
   const s = audit.rpcStats;
-  io.err(`debug: ${s.requests} RPC requests (${Object.entries(s.byMethod).map(([m, c]) => `${m}:${c}`).join(', ')}), fallback ${s.fallbackUsed ? 'yes' : 'no'}\n`);
+  io.err(`debug: ${s.requests} RPC requests (${Object.entries(s.byMethod).map(([m, c]) => `${m}:${c}`).join(', ')}), fallback ${s.fallbackUsed ? "yes" : "no"}, throttle signals ${s.throttles}\n`);
   io.err(`debug: candidates ${audit.candidates.hashes.length} looked up, ${audit.candidates.withheld} withheld, ${audit.candidates.notLookedUp} over limit; partial ${audit.sink.partials.size}; tool calls ${audit.sink.tools.size}\n`);
   io.err(`debug: planned ${audit.ledger.plannedBlocks} blocks, scanned ${audit.ledger.scannedBlocks}, total ${audit.seconds.toFixed(1)} s\n`);
 }

@@ -132,10 +132,11 @@ export async function runLedger({
   const found = new Map();
   const seenBlocks = new Set();
   const failed = [];
+  const scanStarted = Date.now();
   const scanChunk = async (blocks) => {
     let res;
     try {
-      res = await rpc.batch(blocks.map((b) => ['eth_getBlockByNumber', [hex(b), true]]), { size: SCAN_BATCH, nonNull: true });
+      res = await rpc.batch(blocks.map((b) => ['eth_getBlockByNumber', [hex(b), true]]), { size: blocks.length, nonNull: true });
     } catch {
       failed.push(...blocks);
       return;
@@ -156,7 +157,10 @@ export async function runLedger({
         found.set(tx.hash, tx);
       }
     });
-    if (onProgress) onProgress({ scannedBlocks: seenBlocks.size, plannedBlocks });
+    if (onProgress) {
+      const secs = (Date.now() - scanStarted) / 1000;
+      onProgress({ scannedBlocks: seenBlocks.size, plannedBlocks, blocksPerSec: secs > 0 ? seenBlocks.size / secs : null });
+    }
   };
   const remaining = (seg) => {
     const have = new Set();
@@ -170,8 +174,9 @@ export async function runLedger({
     while (i < blocks.length) {
       if (seg && remaining(seg) <= 0) return; // every nonce of this segment is accounted for
       const width = Math.max(1, rpc.concurrency ? rpc.concurrency() : 2);
+      const size = rpc.scanBatch ? rpc.scanBatch() : SCAN_BATCH;
       const round = [];
-      for (let w = 0; w < width && i < blocks.length; w++, i += SCAN_BATCH) round.push(blocks.slice(i, i + SCAN_BATCH));
+      for (let w = 0; w < width && i < blocks.length; w++, i += size) round.push(blocks.slice(i, i + size));
       await Promise.all(round.map(scanChunk));
     }
   };
@@ -204,6 +209,7 @@ export async function runLedger({
   return {
     nonceAt, resolved, txs, gaps, unscannedRanges,
     scannedBlocks: seenBlocks.size, plannedBlocks, unresolvedHashes, known,
+    scanSeconds: seenBlocks.size ? (Date.now() - scanStarted) / 1000 : 0,
     scannedHashes: new Set(found.keys()), seconds: (Date.now() - started) / 1000,
   };
 }

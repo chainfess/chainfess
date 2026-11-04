@@ -82,7 +82,9 @@ export function buildReport(a, { demo = false, now = null } = {}) {
     scan: {
       plannedBlocks: a.ledger.plannedBlocks, scannedBlocks: a.ledger.scannedBlocks,
       gaps: a.ledger.gaps.map((g) => ({ from: g.from, to: g.to })), unscanned,
-      seconds: Math.round(a.ledger.seconds * 10) / 10, requests: a.rpcStats.requests,
+      seconds: Math.round(a.ledger.scanSeconds * 10) / 10,
+      blocksPerSec: a.ledger.scanSeconds > 0 ? Math.round(a.ledger.scannedBlocks / a.ledger.scanSeconds) : null,
+      requests: a.rpcStats.requests,
       fallbackUsed: a.rpcStats.fallbackUsed,
     },
     summary: {

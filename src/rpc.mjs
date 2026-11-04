@@ -7,9 +7,15 @@ export class RpcUnavailableError extends Error {
 }
 
 const USER_AGENT = 'chainfess/0.1';
+const GROW_AFTER = 20;
 const THROTTLE_STATUS = new Set([429, 502, 503]);
 const THROTTLE_CODES = new Set([-32005, -32029, -32603]);
 const SIZE_STEPS = [100, 50, 25, 10];
+export const START_SCAN_BATCH = 50;
+export const MAX_SCAN_BATCH = 100;
+const MIN_SCAN_BATCH = 10;
+const START_IN_FLIGHT = 2;
+const MAX_IN_FLIGHT = 3;
 
 class Throttle extends Error {}
 
@@ -33,15 +39,17 @@ export function createRpc({
   const state = {
     url, single: false, fallbackUsed: false, requests: 0, byMethod: {},
     failedInARow: 0, id: 0,
-    maxInFlight: 2, inFlight: 0, successes: 0, spacing: paceMs, lastStart: 0, waiters: [],
+    maxInFlight: START_IN_FLIGHT, inFlight: 0, successes: 0, spacing: paceMs, lastStart: 0, waiters: [],
+    scanSize: START_SCAN_BATCH, holdUntil: 0, cooldown: 1000, lastThrottle: 0,
   };
 
   async function acquire() {
     while (state.inFlight >= state.maxInFlight) await new Promise((r) => state.waiters.push(r));
     state.inFlight++;
-    const gap = state.lastStart + state.spacing - Date.now();
-    state.lastStart = Math.max(Date.now(), state.lastStart + state.spacing);
-    if (gap > 0) await sleep(gap);
+    const now = Date.now();
+    const start = Math.max(now, state.lastStart + state.spacing, state.holdUntil);
+    state.lastStart = start;
+    if (start > now) await sleep(start - now);
   }
   function release() {
     state.inFlight--;
@@ -49,17 +57,27 @@ export function createRpc({
     if (w) w();
   }
   function noteSuccess() {
+    state.cooldown = 1000;
     state.successes++;
-    if (state.successes >= 20) {
+    if (state.successes >= GROW_AFTER) {
       state.successes = 0;
-      state.maxInFlight = Math.min(3, state.maxInFlight + 1);
-      state.spacing = Math.max(state.single ? 170 : paceMs, Math.floor(state.spacing / 2));
+      state.maxInFlight = Math.min(MAX_IN_FLIGHT, state.maxInFlight + 1);
+      state.spacing = Math.max(state.single ? 170 : paceMs, Math.floor(state.spacing * 0.75));
+      state.scanSize = Math.min(MAX_SCAN_BATCH, state.scanSize + 10);
     }
   }
+  /** The public RPC limits by rate: everything in flight slows down together, and one wave of 429s counts once. */
   function noteThrottle() {
     state.successes = 0;
-    if (state.maxInFlight > 1) state.maxInFlight = 1;
-    else state.spacing = Math.min(8000, Math.max(state.spacing, 150) * 2);
+    state.throttles = (state.throttles || 0) + 1;
+    const now = Date.now();
+    if (now - state.lastThrottle < 1000) return;
+    state.lastThrottle = now;
+    state.maxInFlight = 1;
+    state.spacing = Math.min(8000, Math.max(state.spacing, 150) * 2);
+    state.scanSize = Math.max(MIN_SCAN_BATCH, Math.floor(state.scanSize / 2));
+    state.holdUntil = now + state.cooldown + random() * 500;
+    state.cooldown = Math.min(32000, state.cooldown * 2);
   }
 
   /** One HTTP POST. Returns results aligned with items; throws on any failure. */
@@ -148,11 +166,12 @@ export function createRpc({
       } catch (e) {
         failures++;
         if (failures >= limit) throw e;
+        const throttled = e instanceof Throttle;
         if (failures >= 3) {
           const next = SIZE_STEPS.find((s) => s < cur);
           if (next) cur = next;
         }
-        await backoff(failures - 1);
+        if (!throttled) await backoff(failures - 1); // a throttle already holds every request
       }
     }
     return results;
@@ -192,7 +211,8 @@ export function createRpc({
       }
       return out;
     },
-    stats: () => ({ requests: state.requests, fallbackUsed: state.fallbackUsed, byMethod: { ...state.byMethod } }),
+    stats: () => ({ requests: state.requests, fallbackUsed: state.fallbackUsed, byMethod: { ...state.byMethod }, throttles: state.throttles || 0 }),
     concurrency: () => state.maxInFlight,
+    scanBatch: () => state.scanSize,
   };
 }

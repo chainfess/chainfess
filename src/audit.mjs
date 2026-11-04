@@ -16,6 +16,13 @@ export const MAX_LOOKUPS = 20000;
 const CONFIRM_ABOVE_SEC = 600;
 const MAX_KEY_CHECKS = 5000;
 
+export function formatDuration(sec) {
+  const s = Math.ceil(sec);
+  if (s < 90) return `${s} s`;
+  if (s < 5400) return `${Math.ceil(s / 60)} min`;
+  return `${(s / 3600).toFixed(1)} h`;
+}
+
 export class InputError extends Error {
   constructor(message) { super(message); this.name = 'InputError'; }
 }
@@ -181,11 +188,11 @@ export async function runAudit(opts) {
   const candidates = lookupCandidates(sink, wallets);
   const onPlan = async ({ plannedBlocks, gaps }) => {
     const estimate = Math.ceil(plannedBlocks / SCAN_BLOCKS_PER_SEC);
-    progress(`scan plan: ${plannedBlocks.toLocaleString('en-US')} blocks in ${gaps.length} gap${gaps.length === 1 ? '' : 's'}, best case ${estimate} s (public RPC may throttle)`);
+    progress(`scan plan: ${plannedBlocks.toLocaleString('en-US')} blocks in ${gaps.length} gap${gaps.length === 1 ? '' : 's'}, about ${formatDuration(estimate)} at the public RPC's measured rate`);
     if (plannedBlocks > maxScanBlocks) return; // the ledger refuses with the numbers
     if (estimate > CONFIRM_ABOVE_SEC && !opts.yes) {
-      const ok = opts.confirm ? await opts.confirm(`Estimated scan is over 10 minutes (${estimate} s best case). Continue?`) : false;
-      if (!ok) throw new Declined(`scan needs confirmation (${plannedBlocks} blocks, ${estimate} s best case); pass --yes`);
+      const ok = opts.confirm ? await opts.confirm(`Estimated scan is over 10 minutes (about ${formatDuration(estimate)}). Continue?`) : false;
+      if (!ok) throw new Declined(`scan needs confirmation (${plannedBlocks} blocks, about ${formatDuration(estimate)}); pass --yes`);
     }
   };
   let ledger;
@@ -193,7 +200,10 @@ export async function runAudit(opts) {
     ledger = await runLedger({
       rpc, wallets, fromBlock: startBlock, toBlock: endBlock, knownHashes: candidates.hashes,
       maxScanBlocks, onPlan, headers,
-      onProgress: ({ scannedBlocks, plannedBlocks }) => progress(`scanned ${scannedBlocks.toLocaleString('en-US')} / ${plannedBlocks.toLocaleString('en-US')} blocks`, true),
+      onProgress: ({ scannedBlocks, plannedBlocks, blocksPerSec }) => {
+        const rate = blocksPerSec ? `, ${Math.round(blocksPerSec)} blocks/s measured, about ${formatDuration((plannedBlocks - scannedBlocks) / blocksPerSec)} left at most` : '';
+        progress(`scanned ${scannedBlocks.toLocaleString('en-US')} / ${plannedBlocks.toLocaleString('en-US')} blocks${rate}`, true);
+      },
     });
   } catch (e) {
     if (e instanceof ScanCapError) {
