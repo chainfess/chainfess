@@ -115,7 +115,6 @@ html.m:not(.m-ready) .marks{opacity:0}
 .arm .boss{right:-22px;top:0;width:44px;height:44px;border-radius:50%;background:#8C9399;border:1px solid var(--ink);box-shadow:inset 0 0 0 7px #C9CDD0,inset 0 0 0 8px var(--ink),inset 0 0 0 14px #A9AFB3}
 .lip{display:none}
 html.m .lip{display:block;position:absolute;left:calc(100% - var(--hw));right:0;top:100%;height:70px;background:#8C9399;border:1px solid var(--ink);transform-origin:50% 0;transform:rotateX(-90deg)}
-html.m .gp{stroke-dasharray:1;stroke-dashoffset:0}
 
 /* Sections: real tone changes */
 .sec{padding:clamp(56px,10vh,112px) 0}
