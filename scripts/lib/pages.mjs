@@ -196,7 +196,7 @@ export function report({ site, json, isDemo, css }) {
     ${group('Before or after the session, pending', rows.filter((t) => ['pre-session', 'post-session', 'pending'].includes(t.status)), 'g-oc')}
     ${group('Other wallets referenced', rows.filter((t) => ['observed', 'recent-other'].includes(t.status)), '')}
     <footer class="rp-f">
-      <p>${esc(String(json.summary?.unresolvedHashes ?? 0))} hashes in the log are not transactions on chain ${json.chainId}.${json.logs?.otherOverlapping ? ` ${json.logs.otherOverlapping} other session logs overlap this range; add them with <code>--log</code> or <code>--all-sessions</code> before drawing conclusions.` : ''}</p>
+      <p>${json.summary?.unresolvedHashes ? `${json.summary.unresolvedHashes} hashes in the log are not transactions on chain ${json.chainId}.` : ''}${json.logs?.otherOverlapping ? ` ${json.logs.otherOverlapping} other session logs overlap this range; add them with <code>--log</code> or <code>--all-sessions</code> before drawing conclusions.` : ''}</p>
       <p>Unaccounted means "not in this log". A human, a cron job or another session on the same wallet produces the same line. Chainfess does not say who sent it.</p>
       <p>Not audited. Nothing is prevented. An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>
       ${isDemo ? '' : `<p>Verify the rules yourself: <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>${copyBox(`cast nonce ${w?.address} --rpc-url ${RPC}`)}`}

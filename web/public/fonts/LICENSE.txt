@@ -1,0 +1,2 @@
+Azeret Mono (c) The Azeret Mono Project Authors. Instrument Sans (c) The Instrument Sans Project Authors.
+Both are subsetted and licensed under the SIL Open Font License 1.1: https://openfontlicense.org
