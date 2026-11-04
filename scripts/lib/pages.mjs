@@ -276,7 +276,7 @@ export function docs({ site, css, publicKey, token }) {
     </section>
     <section id="scope"><h2>Scope</h2>
       <p>Works with Claude Code session logs (<code>.jsonl</code>), including subagent transcripts and Foundry <code>broadcast/</code> files. EOA wallets only. Robinhood Chain by default; any EVM RPC with <code>--rpc</code> (then limits apply, unmeasured).</p>
-      <p>Default scan cap: 210,000 blocks (≈ 6 h of chain, ≈ 22 min best case). Over the cap the CLI refuses with the exact number and the <code>--max-hours</code> / <code>--from-block</code> lines to override. The estimate divides planned blocks by 160 blocks/s, a burst figure: best case; public RPC may throttle. On throttling the CLI backs off, then uses smaller batches, then the fallback RPC. Ranges it still cannot read are listed as unscanned and the exit code is 4.</p>
+      <p>Default scan cap: 210,000 blocks (≈ 6 h of chain, ≈ 1 h to scan). Over the cap the CLI refuses with the exact number and the <code>--max-hours</code> / <code>--from-block</code> lines to override. The estimate divides planned blocks by about 60 blocks/s, the sustained rate measured on the public RPC on 5 Nov 2026; it may throttle harder, and the CLI shows the measured rate during a scan. On throttling the CLI backs off, then uses smaller batches, then the fallback RPC. Ranges it still cannot read are listed as unscanned and the exit code is 4.</p>
     </section>
     <section id="limits"><h2>Limits</h2>
       <p>Not audited. Nothing is prevented. An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>
