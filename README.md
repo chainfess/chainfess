@@ -37,7 +37,7 @@ Exit codes: 0 no findings, 1 findings, 2 input error, 3 RPC unavailable, 4 parti
 
 ## Privacy
 
-`audit` and `demo` run on your machine. The log never leaves it; `audit`'s only network calls are JSON-RPC reads with block numbers, tx hashes and your wallet address. Only the optional `sign` contacts our server: it sends the wallets, block range, hashes and a hash of the log, never the log.
+`audit` and `demo` run on your machine. The log never leaves it; `audit`'s only network calls are JSON-RPC reads with block numbers, values the log labels as tx hashes, and your wallet address. Only the optional `sign` contacts our server: it sends the wallets, block range, hashes and a hash of the log, never the log.
 
 A private key has the same shape as a tx hash, so a 32-byte hex value goes to the RPC only when its context says it is a tx hash: the value of a `transactionHash`, `txHash` or `hash` field or label, the bare output of a plain `cast send` or `forge` call, an explorer `/tx/` URL, or the argument of `cast tx`, `cast receipt`, `cast run` or `eth_getTransactionByHash`. A value with `key`, `secret`, `mnemonic`, `seed`, `password`, `token` or `private` on its line or in its JSON object, in a shell assignment, or that is the private key of a wallet you passed, never leaves your machine. Neither does anything else. Those local values are still matched against the wallet's txs found by the block scan, so your own tx stays Accounted; the scan may just be longer. The footer counts both: "looked up, not a tx" and "not looked up, stays local".
 
@@ -57,7 +57,7 @@ Not audited. Nothing is prevented. An agent with shell access can edit its own l
 
 A script that signs with another wallet without a recognised key flag or command pattern shows only as "other wallet's tx mined during this tool call", not as a finding. Another wallet's hash printed with no hash label stays local, so it is not listed at all. So does a sending command that also printed a tx of your own wallet, or txs of more than two other wallets, because that output is a dump, not a send.
 
-No balance deltas: the free RPC refuses historical balances. A planned scan over 210,000 blocks (about 6 h of chain, about 58 minutes to scan at 60 blocks/s, measured on 5 Nov 2026 over 30,000 blocks on the public RPC) is refused unless you pass `--max-hours` or a block range. Over 512 MB, a saved tool output is not read; the footer says so, because "not in this log" lines may then be explained by that output.
+No balance deltas: the free RPC refuses historical balances. A planned scan over 210,000 blocks (about 6 h of chain, about 58 minutes to scan at 60 blocks/s, measured on 5 Nov 2026 over 30,000 blocks on the public RPC) is refused unless you pass `--max-hours` or a block range. The plan is the worst case: a scan stops a gap once its nonces are found, and a hash with no label can make the plan larger. Over 512 MB, a saved tool output is not read; the footer says so, because "not in this log" lines may then be explained by that output.
 
 ## Signed report
 
