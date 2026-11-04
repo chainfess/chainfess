@@ -254,7 +254,7 @@ function footer(report) {
   if (logs.notLookedUp) out.push(`${logs.notLookedUp} hash candidates over the lookup limit were matched locally only.`);
   if (logs.unreadableLines) out.push(`${logs.unreadableLines} unreadable line${logs.unreadableLines === 1 ? '' : 's'} in the log; hex strings in them were still searched.`);
   if (logs.note) out.push(logs.note);
-  if (report.wallets.some((w) => w.nonce > 0 && w.inLog === 0)) out.push('No hash of this wallet is in the log, so the whole session span was scanned.');
+  if (report.wallets.some((w) => w.nonce > 0 && w.inLog === 0)) out.push('No hash of this wallet is in the log, so the whole audited range was scanned.');
   if (report.scan.unscanned.length) out.push(`Unscanned block ranges: ${report.scan.unscanned.map((r) => `${r.from}–${r.to}`).join(', ')}. Txs in them are not listed; re-run.`);
   if (report.scan.fallbackUsed) out.push('The primary RPC failed; fallback RPC was used, about 15x slower.');
   if (report.summary.pending) out.push('Pending txs: re-run after inclusion.');

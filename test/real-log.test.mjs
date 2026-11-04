@@ -149,7 +149,7 @@ test('real-log nothing-to-reconcile: wallet with no tx in range prints the §7 l
   const { report, text } = await audit('nothing-to-reconcile');
   assert.equal(report.exitCode, 0);
   assert.match(text, /0 transactions from 0x.* between blocks .* Nothing to reconcile\./);
-  assert.match(text, /whole session span was scanned/);
+  assert.match(text, /whole audited range was scanned/);
 });
 
 test('real-log slug: every non-alphanumeric char becomes one dash', () => {
