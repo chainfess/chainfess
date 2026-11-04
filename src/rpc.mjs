@@ -11,11 +11,16 @@ const GROW_AFTER = 20;
 const THROTTLE_STATUS = new Set([429, 502, 503]);
 const THROTTLE_CODES = new Set([-32005, -32029, -32603]);
 const SIZE_STEPS = [100, 50, 25, 10];
-export const START_SCAN_BATCH = 50;
-export const MAX_SCAN_BATCH = 100;
-const MIN_SCAN_BATCH = 10;
 const START_IN_FLIGHT = 2;
 const MAX_IN_FLIGHT = 3;
+// publicnode, measured 05-11: about 7,500 full blocks of burst at 170/s, then a refill near 60-80/s; 429s clear within 5 s.
+// So the client paces by items per second and backs off gently: a hard back-off here drops the rate far below what the RPC allows.
+const START_RATE = 170;
+const MIN_RATE = 20;
+const FALLBACK_RATE = 6;
+const MIN_GAP_MS = 30;
+const RAISE_AFTER = 5;
+const FIRST_HOLD_MS = 3000;
 
 class Throttle extends Error {}
 
@@ -39,16 +44,17 @@ export function createRpc({
   const state = {
     url, single: false, fallbackUsed: false, requests: 0, byMethod: {},
     failedInARow: 0, id: 0,
-    maxInFlight: START_IN_FLIGHT, inFlight: 0, successes: 0, spacing: paceMs, lastStart: 0, waiters: [],
-    scanSize: START_SCAN_BATCH, holdUntil: 0, cooldown: 1000, lastThrottle: 0,
+    maxInFlight: START_IN_FLIGHT, inFlight: 0, successes: 0, raises: 0, rate: START_RATE, nextStart: 0, waiters: [],
+    holdUntil: 0, hold: FIRST_HOLD_MS, lastThrottle: 0, throttles: 0,
   };
+  const paced = paceMs > 0;
 
-  async function acquire() {
+  async function acquire(items) {
     while (state.inFlight >= state.maxInFlight) await new Promise((r) => state.waiters.push(r));
     state.inFlight++;
     const now = Date.now();
-    const start = Math.max(now, state.lastStart + state.spacing, state.holdUntil);
-    state.lastStart = start;
+    const start = Math.max(now, state.nextStart, state.holdUntil);
+    state.nextStart = start + (paced ? Math.max(MIN_GAP_MS, (items / state.rate) * 1000) : 0);
     if (start > now) await sleep(start - now);
   }
   function release() {
@@ -57,32 +63,33 @@ export function createRpc({
     if (w) w();
   }
   function noteSuccess() {
-    state.cooldown = 1000;
-    state.successes++;
-    if (state.successes >= GROW_AFTER) {
+    state.hold = FIRST_HOLD_MS;
+    if (++state.successes >= GROW_AFTER) {
       state.successes = 0;
       state.maxInFlight = Math.min(MAX_IN_FLIGHT, state.maxInFlight + 1);
-      state.spacing = Math.max(state.single ? 170 : paceMs, Math.floor(state.spacing * 0.75));
-      state.scanSize = Math.min(MAX_SCAN_BATCH, state.scanSize + 10);
+    }
+    if (!state.single && ++state.raises >= RAISE_AFTER) {
+      state.raises = 0;
+      state.rate = Math.min(START_RATE, state.rate * 1.1);
     }
   }
-  /** The public RPC limits by rate: everything in flight slows down together, and one wave of 429s counts once. */
+  /** One wave of 429s counts once; everything in flight waits together. */
   function noteThrottle() {
     state.successes = 0;
-    state.throttles = (state.throttles || 0) + 1;
+    state.raises = 0;
+    state.throttles++;
     const now = Date.now();
     if (now - state.lastThrottle < 1000) return;
     state.lastThrottle = now;
     state.maxInFlight = 1;
-    state.spacing = Math.min(8000, Math.max(state.spacing, 150) * 2);
-    state.scanSize = Math.max(MIN_SCAN_BATCH, Math.floor(state.scanSize / 2));
-    state.holdUntil = now + state.cooldown + random() * 500;
-    state.cooldown = Math.min(32000, state.cooldown * 2);
+    state.rate = Math.max(state.single ? FALLBACK_RATE : MIN_RATE, state.rate * 0.75);
+    state.holdUntil = now + state.hold + random() * 500;
+    state.hold = Math.min(32000, state.hold * 1.5);
   }
 
   /** One HTTP POST. Returns results aligned with items; throws on any failure. */
   async function post(items) {
-    await acquire();
+    await acquire(items.length);
     try {
       const reqs = items.map(([method, params]) => ({ jsonrpc: '2.0', id: ++state.id, method, params: params ?? [] }));
       state.requests++;
@@ -126,7 +133,7 @@ export function createRpc({
     state.url = fallbackUrl;
     state.single = true;
     state.fallbackUsed = true;
-    state.spacing = Math.max(state.spacing, 170); // <= 6 r/s
+    state.rate = FALLBACK_RATE; // <= 6 r/s
     state.maxInFlight = 1;
     state.failedInARow = 0;
     try {
@@ -211,8 +218,8 @@ export function createRpc({
       }
       return out;
     },
-    stats: () => ({ requests: state.requests, fallbackUsed: state.fallbackUsed, byMethod: { ...state.byMethod }, throttles: state.throttles || 0 }),
+    stats: () => ({ requests: state.requests, fallbackUsed: state.fallbackUsed, byMethod: { ...state.byMethod }, throttles: state.throttles, rate: state.rate }),
     concurrency: () => state.maxInFlight,
-    scanBatch: () => state.scanSize,
+    pause: sleep,
   };
 }

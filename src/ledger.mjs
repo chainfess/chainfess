@@ -2,6 +2,7 @@
 export const DEFAULT_MAX_SCAN_BLOCKS = 210000;
 export const SCAN_BATCH = 100;
 export const LOOKUP_BATCH = 50;
+const SECOND_PASS_WAIT_MS = 30000;
 
 export class ScanCapError extends Error {
   constructor(planned, cap) {
@@ -174,9 +175,8 @@ export async function runLedger({
     while (i < blocks.length) {
       if (seg && remaining(seg) <= 0) return; // every nonce of this segment is accounted for
       const width = Math.max(1, rpc.concurrency ? rpc.concurrency() : 2);
-      const size = rpc.scanBatch ? rpc.scanBatch() : SCAN_BATCH;
       const round = [];
-      for (let w = 0; w < width && i < blocks.length; w++, i += size) round.push(blocks.slice(i, i + size));
+      for (let w = 0; w < width && i < blocks.length; w++, i += SCAN_BATCH) round.push(blocks.slice(i, i + SCAN_BATCH));
       await Promise.all(round.map(scanChunk));
     }
   };
@@ -185,10 +185,11 @@ export async function runLedger({
     for (let b = seg.from; b <= seg.to; b++) if (!seenBlocks.has(b)) blocks.push(b);
     await scanBlocks(blocks, seg);
   }
-  // Chunks lost before the switch to the fallback get a second chance on it.
-  if (failed.length && rpc.stats().fallbackUsed) {
+  // Blocks lost to a long throttle, or before the switch to the fallback, get a second chance.
+  if (failed.length) {
     const again = [...new Set(failed)].filter((b) => !seenBlocks.has(b)).sort((a, b) => a - b);
     failed.length = 0;
+    if (rpc.pause) await rpc.pause(SECOND_PASS_WAIT_MS);
     await scanBlocks(again, null);
   }
   const unscanned = [...new Set(failed)].filter((b) => !seenBlocks.has(b)).sort((a, b) => a - b);
