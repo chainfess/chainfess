@@ -44,7 +44,7 @@ export function buildReport(a, { demo = false, now = null } = {}) {
   const postDerived = a.walletRows.reduce((s, w) => s + w.uAfter, 0);
   const findings = txs.filter((t) => t.finding).length;
   const unscanned = a.ledger.unscannedRanges.map((r) => ({ from: r.from, to: r.to }));
-  const exitCode = unscanned.length ? 4 : findings ? 1 : 0;
+  const exitCode = demo ? 0 : unscanned.length ? 4 : findings ? 1 : 0; // the demo process exits 0 whatever its fixture holds
   const stats = a.stats;
   return {
     v: 1,
@@ -66,7 +66,6 @@ export function buildReport(a, { demo = false, now = null } = {}) {
       skippedToolResults: stats.skippedToolResults,
       skippedBroadcast: stats.skippedBroadcast,
       broadcastTruncated: stats.broadcastTruncated,
-      withheldCandidates: a.candidates.withheld,
       notLookedUp: a.candidates.notLookedUp,
       note: unreadableOutputsNote(stats),
     },
@@ -93,6 +92,7 @@ export function buildReport(a, { demo = false, now = null } = {}) {
       foreignSigner: count(STATUS.FOREIGN), preSession: count(STATUS.PRE), postSession: count(STATUS.POST) + postDerived,
       pending: count(STATUS.PENDING), recentOther: count(STATUS.RECENT), observed: count(STATUS.OBSERVED),
       unresolvedHashes: a.ledger.unresolvedHashes,
+      localOnlyHashes: a.candidates.localOnly + a.sink.bare.size + a.candidates.notLookedUp,
       mentioned,
     },
     txs,
@@ -249,9 +249,10 @@ function wrap(line, width) {
 function footer(report) {
   const out = [];
   const logs = report.logs;
-  if (report.summary.unresolvedHashes) out.push(`${plural(report.summary.unresolvedHashes, 'hash').replace(/hashs/, 'hashes')} in the log ${report.summary.unresolvedHashes === 1 ? 'is' : 'are'} not a transaction on chain ${report.chainId}.`);
-  if (logs.withheldCandidates) out.push(`${logs.withheldCandidates} 32-byte value${logs.withheldCandidates === 1 ? '' : 's'} next to a key word stayed on this machine, never sent to the RPC.`);
-  if (logs.notLookedUp) out.push(`${logs.notLookedUp} hash candidates over the lookup limit were matched locally only.`);
+  const un = report.summary.unresolvedHashes;
+  if (un) out.push(`Looked up, not a tx: ${un} ${un === 1 ? 'hash' : 'hashes'} in the log ${un === 1 ? 'is' : 'are'} not a transaction on chain ${report.chainId}.`);
+  const lo = report.summary.localOnlyHashes;
+  if (lo) out.push(`Not looked up, stays local: ${lo} 32-byte ${lo === 1 ? 'value' : 'values'} with nothing saying ${lo === 1 ? 'it is' : 'they are'} a tx hash. Never sent to the RPC; matched here against this wallet's txs found by the scan.`);
   if (logs.unreadableLines) out.push(`${logs.unreadableLines} unreadable line${logs.unreadableLines === 1 ? '' : 's'} in the log; hex strings in them were still searched.`);
   if (logs.note) out.push(logs.note);
   if (report.wallets.some((w) => w.nonce > 0 && w.inLog === 0)) out.push('No hash of this wallet is in the log, so the whole audited range was scanned.');

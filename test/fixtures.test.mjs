@@ -48,7 +48,7 @@ test('fixture 3 foreign-send-pattern: cast send output, other from, in window is
   assert.ok(!text.includes(FAKE_KEY) && !json.includes(FAKE_KEY));
   assert.ok(!json.includes('--private-key') && !text.includes('--private-key'));
   assert.ok(!replay.log.bodies.join('').includes(FAKE_KEY), 'key not sent to the RPC');
-  assert.equal(report.logs.withheldCandidates, 1);
+  assert.ok(report.summary.localOnlyHashes >= 1);
 });
 
 test('fixture 4 forge-broadcast: hash only in run-latest.json is Accounted, source broadcast', async () => {
@@ -70,10 +70,12 @@ test('fixture 5 truncated-hash: 0x1234…abcd only is Partial, 0 findings', asyn
 
 test('fixture 6 not-a-tx: salts, block hashes, testnet hash are an Unresolved footer count only', async () => {
   const { report, text } = await audit('not-a-tx');
-  assert.equal(report.summary.unresolvedHashes, 3);
+  assert.equal(report.summary.unresolvedHashes, 1); // labelled transactionHash: looked up, not a tx
+  assert.equal(report.summary.localOnlyHashes, 2); // salt and blockHash: not looked up
   assert.equal(report.txs.length, 0);
   assert.equal(report.summary.findings, 0);
-  assert.match(text, /3 hashes in the log are not a transaction on chain 4663/);
+  assert.match(text, /Looked up, not a tx: 1 hash in the log is not a transaction on chain 4663/);
+  assert.match(text, /Not looked up, stays local: 2 32-byte values/);
   assert.ok(!text.includes(h('salt')));
   assert.ok(!('unresolved' in report.summary));
 });

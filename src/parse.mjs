@@ -11,14 +11,29 @@ export const MAX_LINE_CHARS = 16 * 1024 * 1024;
 const MAX_BROADCAST_BYTES = 5 * 1024 * 1024;
 const MAX_BARE = 200000;
 const MAX_PARTIAL = 100000;
-const OVERLAP = 512;
+const OVERLAP = 4096;
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.ico', '.heic', '.avif']);
 
 const FULL_RE = /0x[0-9a-fA-F]{64}(?![0-9a-fA-F])/g;
 const BARE_RE = /(?<![0-9a-fA-Fx])[0-9a-fA-F]{64}(?![0-9a-fA-F])/g;
 const PARTIAL_RE = /0x([0-9a-fA-F]{4,20})(?:…|\.{2,3}|\\u2026)(?:([0-9a-fA-F]{4,8})(?![0-9a-fA-F]))?/g;
-// A 32-byte value next to one of these words is treated as a possible private key and never sent to any RPC.
-const KEY_CONTEXT_RE = /(priv(ate)?[\s_\-]?key|privkey|secret|mnemonic|seed|signing[\s_\-]?key|_key\b|\bkey\b|--key|\bpk\b|wallet\s*\(|signer\s*\(|account\s*\()[^0-9a-fA-F]{0,32}(\(\d+\)\s*)?["'`]?$/i;
+// A private key has the exact shape of a tx hash, so a 32-byte value is local-only unless its context says it is a hash.
+// Next to one of these words, anywhere in the log, the value is never sent to any RPC, whatever else says about it.
+const KEY_CONTEXT_RE = /(priv(ate)?[\s_\-]?key|privkey|secret|mnemonic|seed|passw|token|signing[\s_\-]?key|_key\b|\bkey\b|--key|\bpk\b|wallet\s*\(|signer\s*\(|account\s*\()[^0-9a-fA-F]{0,32}(\(\d+\)\s*)?["'`]?$/i;
+// The same words on the value's line or in its JSON object beat any positive context.
+const KEY_WORDS_RE = /key|secret|mnemonic|seed|passw|token|private|\bpk\b/i;
+const ENV_ASSIGN_RE = /(^|[\s;&"'])(export\s+[A-Za-z_]\w*|[A-Z][A-Z0-9_]*)=["'`\\]*$/;
+// Positive context: what immediately precedes the value says it is a tx hash.
+const HASH_LABEL_RE = /(transaction[\s_-]?hash|tx[\s_-]?hash|txn[\s_-]?hash|(^|[^A-Za-z0-9_])hash)[\s"'`\\:=]*$/i;
+const EXPLORER_RE = /\/tx\/$/;
+const READ_ARG_RE = /\bcast\s+(tx|receipt|run)\s+([^\s|;&]+\s+)*["'`\\]*$|eth_getTransaction(ByHash|Receipt)[^|;&]{0,80}$/;
+const RAW_RESULT_RE = /["\\]*result["\\]*\s*:\s*["\\]*$/;
+// A sending command that could also print something else does not vouch for bare hex in its output.
+const PRINTS_OTHER_RE = /\b(cat|echo|printf|print|printenv|env|set|grep|rg|sed|awk|head|tail|less|more|jq|python3?|node|bun|deno|tsx|ts-node|npx|curl|wget)\b/;
+const VOUCHING_PATTERNS = new Set(['cast-send', 'cast-publish', 'forge-broadcast', 'forge-create']);
+const LINE_BREAK_RE = /\r|\n|\\n|\\r/g;
+const MAX_CONTEXT = 65536;
+const OBJECT_WINDOW = 4096;
 
 const PATTERNS = [
   ['cast-send', (c) => /\bcast\s+send\b/.test(c)],
@@ -132,7 +147,8 @@ export function createSink() {
     hashes: new Map(),        // lower hash -> { first, other }
     bare: new Map(),          // 64 hex with no 0x -> occurrence; matched locally, never sent anywhere
     partials: new Map(),      // "prefix|suffix" -> occurrence
-    keyLike: new Set(),       // full candidates seen next to a key word
+    keyLike: new Set(),       // full candidates seen in key context: never sent
+    positive: new Set(),      // full candidates seen in hash context: the only ones that may be sent
     tools: new Map(),         // tool id -> { start, end, pattern }
     textFull: new Set(),      // mentioned in assistant text
     textPartials: new Set(),
@@ -182,6 +198,72 @@ function harvest(sink, text, locate, accept = () => true) {
       const key = m[0].toLowerCase();
       if (!sink.bare.has(key) && sink.bare.size < MAX_BARE) sink.bare.set(key, locate(m[0]));
     }
+  }
+}
+
+function enclosingObject(text, index) {
+  let depth = 0;
+  let open = -1;
+  for (let i = index - 1; i >= Math.max(0, index - OBJECT_WINDOW); i--) {
+    const c = text[i];
+    if (c === '}') depth++;
+    else if (c === '{') { if (depth === 0) { open = i; break; } depth--; }
+  }
+  if (open === -1) return null;
+  depth = 0;
+  for (let i = index; i < Math.min(text.length, index + OBJECT_WINDOW); i++) {
+    const c = text[i];
+    if (c === '{') depth++;
+    else if (c === '}') { if (depth === 0) return text.slice(open, i + 1); depth--; }
+  }
+  return text.slice(open, Math.min(text.length, index + OBJECT_WINDOW));
+}
+
+function lineAround(text, index, end) {
+  let a = index;
+  const lo = Math.max(0, index - MAX_CONTEXT);
+  LINE_BREAK_RE.lastIndex = lo;
+  let m;
+  let start = lo;
+  while ((m = LINE_BREAK_RE.exec(text)) && m.index < index) start = m.index + m[0].length;
+  a = start;
+  LINE_BREAK_RE.lastIndex = end;
+  const next = LINE_BREAK_RE.exec(text);
+  const b = next && next.index - end < MAX_CONTEXT ? next.index : Math.min(text.length, end + MAX_CONTEXT);
+  return { a, b, touchesEnd: !next };
+}
+
+/**
+ * The send rule. Sets keyLike or positive for every full candidate in one decoded piece of text.
+ * tool: the tool call this text is the output of, or null. complete: false when the text is a slice of a bigger file.
+ * Default for anything else: neither set, so the value stays local.
+ */
+export function judgeText(sink, text, { tool = null, isOutput = false, atStart = true, atEnd = true } = {}) {
+  if (text.indexOf('0x') === -1) return;
+  FULL_RE.lastIndex = 0;
+  const vouches = isOutput && tool && tool.plainSend;
+  const rawRpc = isOutput && tool && tool.pattern === 'raw-rpc';
+  for (let m; (m = FULL_RE.exec(text));) {
+    const value = m[0].toLowerCase();
+    const endIdx = m.index + m[0].length;
+    const savedLast = FULL_RE.lastIndex;
+    const { a, b, touchesEnd } = lineAround(text, m.index, endIdx);
+    const before = text.slice(a, m.index);
+    const after = text.slice(endIdx, b);
+    const object = enclosingObject(text, m.index);
+    if (KEY_WORDS_RE.test(before) || KEY_WORDS_RE.test(after) || ENV_ASSIGN_RE.test(before) || (object && KEY_WORDS_RE.test(object))) {
+      sink.keyLike.add(value);
+    } else {
+      // A line cut by a chunk edge may hold a key word in the part not seen yet: the next slice decides.
+      const cut = (a === 0 && !atStart) || (touchesEnd && !atEnd);
+      if (!cut) {
+        const labelled = HASH_LABEL_RE.test(before) || EXPLORER_RE.test(before) || READ_ARG_RE.test(before);
+        const bareLine = vouches && /^[\s"'`\\]*$/.test(before) && /^[\s"'`\\]*$/.test(after);
+        const rawResult = rawRpc && RAW_RESULT_RE.test(before);
+        if (labelled || bareLine || rawResult) sink.positive.add(value);
+      }
+    }
+    FULL_RE.lastIndex = savedLast;
   }
 }
 
@@ -260,6 +342,7 @@ export function handleLine(sink, raw, lineNo, ctx) {
       if (!b || typeof b !== 'object') continue;
       if (b.type === 'text' && typeof b.text === 'string') {
         blocks.push({ kind: 'text', toolId: null, text: b.text });
+        judgeText(sink, b.text);
         if (entry.type === 'assistant') {
           const t = b.text.trim();
           if (t && t !== '(no content)') finalText = finalText === null ? b.text : `${finalText}\n${b.text}`;
@@ -270,19 +353,24 @@ export function handleLine(sink, raw, lineNo, ctx) {
         const id = typeof b.id === 'string' ? b.id : null;
         if (id) {
           const pattern = sendingPattern(b.name, b.input);
+          const command = b.input && typeof b.input.command === 'string' ? b.input.command : '';
+          const plainSend = VOUCHING_PATTERNS.has(pattern) && !PRINTS_OTHER_RE.test(command);
           const prev = sink.tools.get(id);
-          sink.tools.set(id, { start: prev && prev.start !== null ? Math.min(prev.start, ts ?? Infinity) : ts, end: prev ? prev.end : null, pattern });
+          sink.tools.set(id, { start: prev && prev.start !== null ? Math.min(prev.start, ts ?? Infinity) : ts, end: prev ? prev.end : null, pattern, plainSend });
         }
-        blocks.push({ kind: 'tool_use', toolId: id, text: b.input === undefined ? '' : JSON.stringify(b.input) });
+        const inputText = b.input === undefined ? '' : JSON.stringify(b.input);
+        blocks.push({ kind: 'tool_use', toolId: id, text: inputText });
+        judgeText(sink, b.input && typeof b.input.command === 'string' ? b.input.command : inputText);
       } else if (b.type === 'tool_result') {
         const id = typeof b.tool_use_id === 'string' ? b.tool_use_id : null;
         if (firstResultId === null) firstResultId = id;
         if (id) {
           const prev = sink.tools.get(id);
-          if (prev) { if (prev.end === null) prev.end = ts; } else sink.tools.set(id, { start: null, end: ts, pattern: null });
+          if (prev) { if (prev.end === null) prev.end = ts; } else sink.tools.set(id, { start: null, end: ts, pattern: null, plainSend: false });
         }
         const text = resultText(b.content);
         blocks.push({ kind: 'tool_result', toolId: id, text });
+        judgeText(sink, text, { tool: id ? sink.tools.get(id) : null, isOutput: true });
         findPersistedPaths(sink, text, { line: lineNo, ts, toolId: id, origin: ctx.origin });
       }
     }
@@ -290,6 +378,10 @@ export function handleLine(sink, raw, lineNo, ctx) {
     if (tur !== undefined && tur !== null) {
       const text = typeof tur === 'string' ? tur : JSON.stringify(tur);
       blocks.push({ kind: 'tool_result', toolId: firstResultId, text });
+      const turTool = firstResultId ? sink.tools.get(firstResultId) : null;
+      if (typeof tur === 'object') {
+        for (const part of [tur.stdout, tur.stderr]) if (typeof part === 'string') judgeText(sink, part, { tool: turTool, isOutput: true });
+      } else judgeText(sink, text, { tool: turTool, isOutput: true });
       if (typeof tur === 'object' && typeof tur.persistedOutputPath === 'string') {
         notePersisted(sink, tur.persistedOutputPath, { line: lineNo, ts, toolId: firstResultId, origin: ctx.origin });
       } else if (typeof tur === 'string') {
@@ -324,13 +416,19 @@ async function scanFileText(sink, path, meta) {
   let tail = '';
   const locate = () => ({ kind: 'tool-results', origin: meta.origin, line: meta.line, ts: meta.ts, toolId: meta.toolId });
   const stream = createReadStream(path, { highWaterMark: 1024 * 1024 });
+  const tool = meta.toolId ? sink.tools.get(meta.toolId) : null;
+  let atStart = true;
   for await (const chunk of stream) {
     const text = tail + decoder.write(chunk);
     const safeEnd = text.length - 1;
     harvest(sink, text, locate, (end) => end < safeEnd);
+    judgeText(sink, text, { tool, isOutput: true, atStart, atEnd: false });
+    atStart = atStart && text.length <= OVERLAP; // the kept tail still starts the file
     tail = text.slice(-OVERLAP);
   }
-  harvest(sink, tail + decoder.end(), locate);
+  const last = tail + decoder.end();
+  harvest(sink, last, locate);
+  judgeText(sink, last, { tool, isOutput: true, atStart, atEnd: true });
 }
 
 function resolvePersisted(path, sessionDirs) {
@@ -441,6 +539,7 @@ function readBroadcast(sink, path, stats) {
       const key = h.toLowerCase();
       let rec = sink.hashes.get(key);
       if (!rec) { rec = { first: null, other: null, broadcast: null }; sink.hashes.set(key, rec); }
+      sink.positive.add(key);
       if (!rec.broadcast) rec.broadcast = { kind: 'broadcast', origin: 'broadcast', line: null, ts: null, toolId: null };
     }
     if (any || list.length === 0) stats.broadcast++;

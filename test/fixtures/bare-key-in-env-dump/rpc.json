@@ -1,0 +1,25 @@
+{
+ "chainId": 4663,
+ "latest": 100000000,
+ "latestTs": 1793836800,
+ "blockTime": 0.104,
+ "wallets": [
+  "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+ ],
+ "nonces": {
+  "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1": 1
+ },
+ "code": {
+  "0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4": "0x"
+ },
+ "txs": [
+  {
+   "hash": "0x9374ea5b56858b9049eea095000342ceacdc767925ed5c97200d9dc9b51c836f",
+   "from": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+   "to": "0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4",
+   "nonce": 0,
+   "block": 97024231,
+   "value": "0x0"
+  }
+ ]
+}

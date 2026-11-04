@@ -60,11 +60,11 @@ export function buildAll(root = HERE) {
     'rpc.json': world([W], { [W]: 0 }, [tx(h('old'), THIRD, 9, blockAt('2026-10-20T00:00:00Z'))]),
   });
   write('foreign-send-window', {
-    'session.jsonl': [start(), use(T(5), 't1', 'node pay.mjs'), result(T(5, 3), 't1', `sent ${h('pay')}`), end()],
+    'session.jsonl': [start(), use(T(5), 't1', 'node pay.mjs'), result(T(5, 3), 't1', `txHash: ${h('pay')}`), end()],
     'rpc.json': world([W], { [W]: 0 }, [tx(h('pay'), OTHER, 3, inWin)]),
   });
   write('foreign-send-window-key', {
-    'session.jsonl': [start(), use(T(5), 't1', 'node pay.mjs --private-key $DEPLOYER'), result(T(5, 3), 't1', `sent ${h('pay')}`), end()],
+    'session.jsonl': [start(), use(T(5), 't1', 'node pay.mjs --private-key $DEPLOYER'), result(T(5, 3), 't1', `txHash: ${h('pay')}`), end()],
     'rpc.json': world([W], { [W]: 0 }, [tx(h('pay'), OTHER, 3, inWin)]),
   });
   write('foreign-send-pattern', {
@@ -82,7 +82,7 @@ export function buildAll(root = HERE) {
     'rpc.json': world([W], { [W]: 1 }, [tx(trunc, W, 0, inWin)]),
   });
   write('not-a-tx', {
-    'session.jsonl': [start(), use(T(5), 't1', 'forge inspect'), result(T(5, 1), 't1', `salt ${h('salt')}\nblock ${h('blockhash')}\ntestnet ${h('sepolia-tx')}`), end()],
+    'session.jsonl': [start(), use(T(5), 't1', 'forge inspect'), result(T(5, 1), 't1', `salt ${h('salt')}\nblockHash ${h('blockhash')}\ntransactionHash ${h('sepolia-tx')}`), end()],
     'rpc.json': world([W], { [W]: 0 }, []),
   });
   write('pre-session', {
@@ -104,20 +104,20 @@ export function buildAll(root = HERE) {
   write('ghost-gap', {
     // Nonces 0-3 are in the log too: an unknown nonce below min(K) rightly adds a head scan (§2.2 step 4).
     'session.jsonl': [start(),
-      use(T(1), 't0', 'cast receipt'), result(T(1, 1), 't0', prior.map((t) => t.hash).join(' ')),
+      use(T(1), 't0', 'cast receipt'), result(T(1, 1), 't0', prior.map((t) => `transactionHash ${t.hash}`).join('\n')),
       use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', h('gg4')),
       use(T(3), 't2', 'cast send'), result(T(3, 1), 't2', h('gg6')), end()],
     'rpc.json': world([W], { [W]: 7 }, [...prior, tx(h('gg4'), W, 4, b4), tx(h('gg5'), W, 5, b5), tx(h('gg6'), W, 6, b6)]),
   });
   write('ghost-tail', {
-    'session.jsonl': [start(), use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', `${h('gt0')} ${h('gt1')}`), end()],
+    'session.jsonl': [start(), use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', `${h('gt0')}\n${h('gt1')}`), end()],
     'rpc.json': world([W], { [W]: 3 }, [
       tx(h('gt0'), W, 0, blockAt('2026-10-30T00:00:00Z')), tx(h('gt1'), W, 1, blockAt(T(2))),
       tx(h('gt2'), W, 2, blockAt(T(60))),
     ]),
   });
   write('contiguous-no-scan', {
-    'session.jsonl': [start(), use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', `${h('c0')} ${h('c1')} ${h('c2')}`), end()],
+    'session.jsonl': [start(), use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', `${h('c0')}\n${h('c1')}\n${h('c2')}`), end()],
     'rpc.json': world([W], { [W]: 3 }, [tx(h('c0'), W, 0, blockAt(T(2))), tx(h('c1'), W, 1, blockAt(T(2)) + 1), tx(h('c2'), W, 2, blockAt(T(2)) + 2)]),
   });
   write('subagent', {
@@ -148,7 +148,7 @@ export function buildAll(root = HERE) {
   });
   write('final-text', {
     'session.jsonl': [start(),
-      use(T(1), 't1', 'cast send'), result(T(1, 1), 't1', `${h('f0')} ${h('f1')} ${h('f2')}`),
+      use(T(1), 't1', 'cast send'), result(T(1, 1), 't1', `${h('f0')}\n${h('f1')}\n${h('f2')}`),
       say(T(2), `mid text ${h('f1')}`),
       say(T(3), `subagent final ${h('f2')}`, { isSidechain: true }),
       use(T(4), 't2', 'ls'), result(T(4, 1), 't2', 'x'),
@@ -157,7 +157,7 @@ export function buildAll(root = HERE) {
   });
   const dump = Array.from({ length: 60 }, (_, i) => tx(h(`dump${i}`), '0x' + (i + 16).toString(16).repeat(20), i, inWin));
   write('block-dump', {
-    'session.jsonl': [start(), use(T(5), 't1', 'cast block latest --full'), result(T(5, 1), 't1', dump.map((t) => t.hash).join('\n')), end()],
+    'session.jsonl': [start(), use(T(5), 't1', 'cast block latest --full'), result(T(5, 1), 't1', dump.map((t) => `hash ${t.hash}`).join('\n')), end()],
     'rpc.json': world([W], { [W]: 0 }, dump),
   });
   write('block-dump-after-send', {
@@ -232,7 +232,7 @@ export function buildAll(root = HERE) {
     'rpc.json': world([W], { [W]: 1 }, [tx(h('bare'), W, 0, blockAt(T(2)))]),
   });
   write('same-block-nonces', {
-    'session.jsonl': [start(), use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', `${h('sb0')} ${h('sb2')}`), end()],
+    'session.jsonl': [start(), use(T(2), 't1', 'cast send'), result(T(2, 1), 't1', `${h('sb0')}\n${h('sb2')}`), end()],
     'rpc.json': world([W], { [W]: 3 }, [tx(h('sb0'), W, 0, inWin), tx(h('sb1'), W, 1, inWin), tx(h('sb2'), W, 2, inWin)]),
   });
   write('two-wallets', {
@@ -242,6 +242,33 @@ export function buildAll(root = HERE) {
   write('nothing-to-reconcile', {
     'session.jsonl': [start(), end()],
     'rpc.json': world([W], { [W]: 2 }, [tx(h('old0'), W, 0, blockAt('2026-10-01T00:00:00Z')), tx(h('old1'), W, 1, blockAt('2026-10-02T00:00:00Z'))]),
+  });
+  // The send rule: a value that may be a private key never leaves the process. The own tx's hash is bare too and must stay Accounted.
+  const bareOwn = tx(h('bare-own'), W, 0, blockAt(T(2)));
+  const keyWorld = () => world([W], { [W]: 1 }, [bareOwn]);
+  write('bare-key-in-tool-result', {
+    'session.jsonl': [start(),
+      use(T(1), 't1', 'some-tool --print'), result(T(1, 1), 't1', FAKE_KEY),
+      use(T(2), 't2', `cast send ${TARGET} && echo $K`), result(T(2, 1), 't2', `${FAKE_KEY}\n${h('bare-own')}`), end()],
+    'rpc.json': keyWorld(),
+  });
+  write('bare-key-in-env-dump', {
+    'session.jsonl': [start(),
+      use(T(2), 't1', 'cat .env'), result(T(2, 1), 't1', `RPC_URL=https://x\nDEPLOYER=${FAKE_KEY}\nDONE=${h('bare-own')}`), end()],
+    'rpc.json': keyWorld(),
+  });
+  write('bare-key-in-json', {
+    'session.jsonl': [start(),
+      use(T(2), 't1', 'cat wallet.json'),
+      result(T(2, 1), 't1', `{"hash":"${FAKE_KEY}","privateKey":"elsewhere"}\n{\n "txHash": "${FAKE_KEY}",\n "secret": true\n}\n{"value":"${FAKE_KEY}"}\n{"id":"${h('bare-own')}"}`), end()],
+    'rpc.json': keyWorld(),
+  });
+  write('key-in-command', {
+    'session.jsonl': [start(),
+      use(T(1), 't1', `cast wallet address ${FAKE_KEY}`), result(T(1, 1), 't1', 'ok'),
+      use(T(2), 't2', `cast tx ${FAKE_KEY} --private-key x`), result(T(2, 1), 't2', 'ok'),
+      use(T(3), 't3', `K=${FAKE_KEY} cast send ${TARGET}`), result(T(3, 1), 't3', `done ${h('bare-own')}`), end()],
+    'rpc.json': keyWorld(),
   });
 }
 

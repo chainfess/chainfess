@@ -60,23 +60,26 @@ function resolveLogs(opts, cwd) {
   return { logs: [newest], explicit: false };
 }
 
-/** Chooses which 32-byte values may be sent to an RPC. A value next to a key word, or that is the wallet's own key, is not. */
+/**
+ * The only values that may go to an RPC: hash context somewhere in the log, no key context anywhere, not a wallet's own key.
+ * Everything else stays in this process and is matched against txs the block scan finds.
+ */
 export function lookupCandidates(sink, wallets) {
   const walletSet = new Set(wallets);
   const out = [];
-  let withheld = 0;
+  let localOnly = 0;
   let notLookedUp = 0;
   let checks = 0;
   for (const h of sink.hashes.keys()) {
-    if (sink.keyLike.has(h)) { withheld++; continue; }
+    if (!sink.positive.has(h) || sink.keyLike.has(h)) { localOnly++; continue; }
     if (checks++ < MAX_KEY_CHECKS) {
       const a = addressOfKey(h);
-      if (a && walletSet.has(a)) { withheld++; continue; }
+      if (a && walletSet.has(a)) { localOnly++; continue; }
     }
     if (out.length >= MAX_LOOKUPS) { notLookedUp++; continue; }
     out.push(h);
   }
-  return { hashes: out, withheld, notLookedUp };
+  return { hashes: out, localOnly, notLookedUp };
 }
 
 function buildCtx(sink, walletSet, startBlock, endBlock) {

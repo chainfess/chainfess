@@ -35,7 +35,7 @@ test('demo: 1 Accounted, 1 Unaccounted, 1 Foreign signer, 1 Observed; --json has
   assert.equal(r.summary.foreignSigner, 1);
   assert.equal(r.summary.observed, 1);
   assert.equal(r.summary.findings, 2);
-  assert.equal(r.exitCode, 1);
+  assert.equal(r.exitCode, 0); // same as the process
 });
 
 test('demo: every header line is labelled, no secret-looking or banned word, no colour when not a TTY', async () => {

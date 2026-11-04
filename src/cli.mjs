@@ -84,7 +84,7 @@ function auditOptsFrom(values, io) {
 function printDebug(io, audit) {
   const s = audit.rpcStats;
   io.err(`debug: ${s.requests} RPC requests (${Object.entries(s.byMethod).map(([m, c]) => `${m}:${c}`).join(', ')}), fallback ${s.fallbackUsed ? "yes" : "no"}, throttle signals ${s.throttles}\n`);
-  io.err(`debug: candidates ${audit.candidates.hashes.length} looked up, ${audit.candidates.withheld} withheld, ${audit.candidates.notLookedUp} over limit; partial ${audit.sink.partials.size}; tool calls ${audit.sink.tools.size}\n`);
+  io.err(`debug: candidates ${audit.candidates.hashes.length} looked up, ${audit.candidates.localOnly} local only, ${audit.candidates.notLookedUp} over limit; partial ${audit.sink.partials.size}; tool calls ${audit.sink.tools.size}\n`);
   io.err(`debug: planned ${audit.ledger.plannedBlocks} blocks, scanned ${audit.ledger.scannedBlocks}, total ${audit.seconds.toFixed(1)} s\n`);
 }
 
@@ -144,7 +144,7 @@ export async function cmdDemo(argv, io) {
   });
   if (parsed.values.json) io.out(JSON.stringify(report, null, 2) + '\n');
   else io.out(renderText(report, { color: useColor(io) }));
-  return 0; // a demo that ran is a success; report.exitCode says what the same audit would exit with
+  return report.exitCode;
 }
 
 async function cmdSign(argv, io) {

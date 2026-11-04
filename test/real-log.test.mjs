@@ -1,6 +1,6 @@
 // Real Claude Code log shapes from SPIKE.md, on top of the 19 fixtures.
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync, utimesSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -8,7 +8,7 @@ import { audit, byStatus, copyFixture } from './helpers.mjs';
 import { auditReport, InputError, lookupCandidates } from '../src/audit.mjs';
 import { createSink, findProjectDir, handleLine, newestLog, sendingPattern, slugOf } from '../src/parse.mjs';
 import { createReplay } from '../src/replay.mjs';
-import { h, OTHER, WALLET } from './fixtures/build.mjs';
+import { blockAt, FAKE_KEY, h, OTHER, WALLET } from './fixtures/build.mjs';
 
 const status = (r, hash) => (r.txs.find((t) => t.hash === hash) || {}).status;
 
@@ -47,6 +47,7 @@ test('real-log persisted-glob: tool-results/* text and JSON are searched, images
   assert.equal(status(report, h('pg')), 'accounted');
   assert.equal(report.txs[0].source.kind, 'tool-results');
   assert.equal(report.summary.unresolvedHashes, 0); // the hash inside shot.png was not read
+  assert.equal(report.summary.localOnlyHashes, 0);
 });
 
 test('real-log persisted-foreign: a persisted output ties to its tool call for row 7', async () => {
@@ -81,7 +82,7 @@ test('real-log persisted-large: a file bigger than memory chunks is read through
   const a = h('seam');
   const b = h('deep');
   const seam = 1024 * 1024 - 30;
-  writeFileSync(join(dir, 'session/tool-results/big.txt'), `${' '.repeat(seam)}${a}${' '.repeat(3 * 1024 * 1024)}${b}`);
+  writeFileSync(join(dir, 'session/tool-results/big.txt'), `${' '.repeat(seam)}\nhash ${a}\n${' '.repeat(3 * 1024 * 1024)}\nhash ${b}\n`);
   const world = {
     chainId: 4663, latest: 100000000, latestTs: Date.parse('2026-11-05T00:00:00Z') / 1000, blockTime: 0.104, nonces: { [WALLET]: 0 }, code: {},
     txs: [{ hash: a, from: OTHER, to: null, nonce: 1, block: 90000000 }, { hash: b, from: OTHER, to: null, nonce: 2, block: 90000001 }],
@@ -101,7 +102,7 @@ test('real-log oversized-line: a line over the parse limit is scanned in pieces 
   writeFileSync(log, `${start}\n{"type":"user","blob":"${'y'.repeat(2500000)} ${h('long')} ${'y'.repeat(2500000)}"}\n${end}\n`);
   const world = {
     chainId: 4663, latest: 100000000, latestTs: Date.parse('2026-11-05T00:00:00Z') / 1000, blockTime: 0.104, nonces: { [WALLET]: 1 }, code: {},
-    txs: [{ hash: h('long'), from: WALLET, to: null, nonce: 0, block: 99999000 - 3000000 }],
+    txs: [{ hash: h('long'), from: WALLET, to: null, nonce: 0, block: blockAt('2026-11-01T10:05:00Z') }],
   };
   const { report } = await auditReport({
     wallets: [WALLET], logs: [log], cwd: dir, fetchImpl: createReplay(world).fetchImpl, paceMs: 0, sleep: async () => {}, fallback: false, maxLineChars: 1024 * 1024,
@@ -198,24 +199,25 @@ test('real-log sending-pattern: pattern names per §2.3, Bash only', () => {
   assert.equal(sendingPattern('Read', { command: 'cast send' }), null);
 });
 
-test('real-log key-guard: a value next to a key word, or the wallet\'s own key, is never looked up', () => {
+test('real-log key-guard: key context anywhere vetoes; only a value with hash context is looked up', () => {
   const anvil0 = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
   const addr0 = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
   const sink = createSink();
   const ctx = { origin: 'main', lastTs: null, evidenceOnly: false };
-  const contexts = ['PRIVATE_KEY=', '--private-key ', '"privateKey": "', 'Private key: ', 'mnemonic seed ', 'new Wallet("', 'privateKeyToAccount(\'', 'Private Keys\\n=====\\n(0) '];
-  contexts.forEach((c, i) => {
-    handleLine(sink, JSON.stringify({ type: 'other', note: c.includes('\\n') ? 'x' : undefined }), i, ctx);
-  });
+  const contexts = ['PRIVATE_KEY=', '--private-key ', '"privateKey": "', 'Private key: ', 'mnemonic seed ', 'new Wallet("', 'privateKeyToAccount(\'', 'password: ', 'token ', 'FOO=', 'export bar='];
   const keys = contexts.map((_, i) => h(`k${i}`));
-  contexts.forEach((c, i) => {
-    handleLine(sink, `{"type":"attachment","x":"${c.replaceAll('"', '\\"')}${keys[i]}"}`, 100 + i, ctx);
-  });
-  handleLine(sink, JSON.stringify({ type: 'attachment', x: `printed ${anvil0}` }), 200, ctx);
-  handleLine(sink, JSON.stringify({ type: 'attachment', x: `tx hash ${h('plain')}` }), 201, ctx);
-  const { hashes, withheld } = lookupCandidates(sink, [addr0]);
-  assert.deepEqual(hashes, [h('plain')]);
-  assert.equal(withheld, keys.length + 1);
+  const line = (n, text) => handleLine(sink, JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: `r${n}`, content: text }] } }), n, ctx);
+  contexts.forEach((c, i) => line(100 + i, `${c}${keys[i]}`));
+  line(198, `transactionHash ${keys[0]}`); // the same value with a label later: key context still wins
+  line(199, `hash: ${anvil0}`); // labelled, but it is the audited wallet's key
+  line(200, `tx hash ${h('plain')}`);
+  line(201, `no label ${h('nolabel')}`);
+  line(202, `https://explorer.example/tx/${h('url')}`);
+  line(203, `blockHash ${h('blk')}`);
+  line(204, `{"txHash":"${h('js')}"}`);
+  const { hashes, localOnly } = lookupCandidates(sink, [addr0]);
+  assert.deepEqual(hashes.sort(), [h('plain'), h('url'), h('js')].sort());
+  assert.equal(localOnly, keys.length + 3);
 });
 
 test('real-log withheld-but-own: a tx hash wrongly next to a key word still matches locally after the scan', async () => {
@@ -236,4 +238,48 @@ test('real-log withheld-but-own: a tx hash wrongly next to a key word still matc
   assert.equal(status(report, H), 'accounted');
   assert.equal(report.summary.findings, 0);
   assert.equal(replay.log.hashes.length, 0);
+});
+
+for (const name of ['bare-key-in-tool-result', 'bare-key-in-env-dump', 'bare-key-in-json', 'key-in-command']) {
+  test(`fixture ${name}: the value never leaves the process, and the bare own tx stays Accounted`, async () => {
+    const { report, text, json, replay } = await audit(name);
+    const sent = replay.log.bodies.join('');
+    assert.ok(replay.log.requests > 0);
+    assert.ok(!sent.toLowerCase().includes(FAKE_KEY.slice(2).toLowerCase()), 'key in a request body');
+    assert.ok(!text.includes(FAKE_KEY) && !json.includes(FAKE_KEY));
+    assert.ok(!replay.log.hashes.includes(h('bare-own')), 'a bare hash is not looked up either');
+    assert.equal(status(report, h('bare-own')), 'accounted');
+    assert.equal(report.summary.findings, 0);
+    assert.ok(report.scan.scannedBlocks > 0, 'the block scan is what found it');
+    assert.ok(report.summary.localOnlyHashes >= 2);
+    assert.match(text, /Not looked up, stays local/);
+  });
+}
+
+test('fixture sign-hashes-confirmed-only: sign gets only hashes confirmed on chain from a registered wallet', async () => {
+  const { prepareAudit } = await import('../src/audit.mjs');
+  const dir = copyFixture('bare-key-in-tool-result');
+  const world = JSON.parse(readFileSync(join(dir, 'rpc.json'), 'utf8'));
+  world.txs.push({ hash: h('third'), from: OTHER, to: null, nonce: 1, block: world.txs[0].block });
+  const log = join(dir, 'session.jsonl');
+  writeFileSync(log, readFileSync(log, 'utf8') + JSON.stringify({ type: 'user', timestamp: '2026-11-01T10:09:00Z', message: { content: [{ type: 'tool_result', tool_use_id: 'x', content: `transactionHash ${h('third')}\ntransactionHash ${h('no-such-tx')}` }] } }) + '\n');
+  const replay = createReplay(world);
+  const a = await prepareAudit({ wallets: world.wallets, logs: [log], cwd: dir, fetchImpl: replay.fetchImpl, paceMs: 0, sleep: async () => {}, fallback: false });
+  assert.deepEqual(a.hashes, [h('bare-own')]);
+  assert.ok(!JSON.stringify(a).includes(FAKE_KEY));
+});
+
+test('real-log send-rule: a key-reading send does not vouch for bare hex, a plain send does', () => {
+  const sink = createSink();
+  const ctx = { origin: 'main', lastTs: null, evidenceOnly: false };
+  const pair = (id, cmd, out) => {
+    handleLine(sink, JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name: 'Bash', input: { command: cmd } }] } }), 1, ctx);
+    handleLine(sink, JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content: out }] } }), 2, ctx);
+  };
+  pair('a', 'cast send --async 0x1 --private-key $K', h('plain-send'));
+  pair('b', 'cast send 0x1 && cat key.txt', h('with-cat'));
+  pair('c', 'node pay.mjs --private-key $K', h('script'));
+  pair('d', 'ls', h('ls'));
+  assert.ok(sink.positive.has(h('plain-send')));
+  for (const v of ['with-cat', 'script', 'ls']) assert.ok(!sink.positive.has(h(v)), v);
 });
