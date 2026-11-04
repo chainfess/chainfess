@@ -108,13 +108,15 @@ export function landing({ site, token, json, isDemo, css }) {
   const problem = `<section class="sec s-white" id="problem"><div class="wrap two">
     <div><h2>The log is your agent's record. The chain is independent.</h2></div>
     <div class="prose">
-      <p>OpenAI disclosed an internal agent that spent from a wallet it did not own, omitted it from its report, and was found about 3 months later in an audit. Testnet funds, no mainnet loss reported (CoinDesk, 16 Oct 2026).</p>
-      <p>Chainfess reads independent chain data after the fact and needs no cooperation from the agent. The wallet's nonce says how many transactions it has ever sent. The report shows how many of them this log explains.</p>
+      <p>OpenAI disclosed an internal agent that spent from a wallet it did not own, omitted it from its report, and was found about 3 months later. Testnet funds, no mainnet loss reported (CoinDesk, 16 Oct 2026).</p>
+      <p>Chainfess reads independent chain data after the fact. The wallet's nonce says how many transactions it has ever sent. The report shows how many of them this log explains.</p>
     </div>
   </div></section>`;
 
   const steps = [
-    ['Point it at a wallet', `<p>Audit a past session. Default log = latest Claude Code session for the current directory.</p><code class="code-b">${esc(c)} audit --wallet 0x…</code>`],
+    ['Point it at a wallet', site.npmLive
+      ? `<p>Audit a past session. Default log = latest Claude Code session for the current directory.</p><code class="code-b">${esc(c)} audit --wallet 0x…</code>`
+      : `<p>Audit a past session by giving the CLI your agent's wallet address. Default log = latest Claude Code session for the current directory. The commands are listed in the <a href="/docs#audit">docs</a>.</p>`],
     ['It compares log and chain', `<p><code>audit</code> runs on your machine and reads the chain with JSON-RPC calls. Deterministic, no LLM. The log never leaves your machine.</p>`],
     ['You get a plain list', `<p>Every transaction the log does not account for, as one line each. <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>`],
   ];
@@ -134,7 +136,7 @@ export function landing({ site, token, json, isDemo, css }) {
       <ul class="tx-list">${ordered.map((t) => `<li class="tx ${toneOf(t)}"><span class="tx-s">${esc(STATUS_WORD[t.status] || t.status)}</span><span class="tx-w">${esc(plainSource(t))}</span><code class="tx-h">${esc(shortHash(t.hash))}</code><span class="tx-t">${esc(utcTime(t.time))}</span></li>`).join('')}</ul>
       <p class="sheet-foot"><a class="btn btn-2" href="/report/sample">Open the full report</a></p>
     </div>
-    <p class="after-card">Reports show hashes, addresses, values, tool name and a line reference. Never command text, never secrets.</p>
+    <p class="after-card">Reports show hashes, addresses, values, the command pattern name, the source kind and a line reference. Never command text, never secrets.</p>
   </div></section>`;
 
   const outcomes = [
@@ -162,7 +164,7 @@ export function landing({ site, token, json, isDemo, css }) {
   </div></section>`;
 
   const qa = [
-    ['Does my log leave my machine?', `<p><code>audit</code> and <code>demo</code> run on your machine. The log never leaves it; <code>audit</code>'s only network calls are JSON-RPC reads with block numbers, tx hashes and your wallet address. Only the optional <code>sign</code> contacts our server: it sends the wallets, block range, hashes and a hash of the log, never the log.</p>`],
+    ['Does my log leave my machine?', `<p><code>audit</code> and <code>demo</code> run on your machine. The log never leaves it. <code>audit</code>'s only network calls are JSON-RPC reads with block numbers, values the log labels as tx hashes, and your wallet address. A 32-byte value with no such label, or with a key word beside it, is never sent. Only the optional <code>sign</code> contacts our server: it sends the wallets, the block range, a hash of the log, and only hashes of transactions confirmed on chain from a registered wallet; never the log.</p>`],
     ['Does it say who sent an unaccounted transaction?', '<p>No. Unaccounted means "not in this log". A human, a cron job or another session on the same wallet produces the same line.</p>'],
     ['Can it stop a transaction?', '<p>No. Nothing is prevented. Chainfess compares after the fact.</p>'],
     ['Can an agent fool it?', '<p>An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>'],
@@ -233,7 +235,8 @@ export function report({ site, json, isDemo, css }) {
       </dl>
     </section>
     <footer class="rp-f">
-      ${json.summary?.unresolvedHashes ? `<p>${json.summary.unresolvedHashes} hashes in the log are not transactions on chain ${json.chainId}.</p>` : ''}
+      ${json.summary?.unresolvedHashes ? `<p>Looked up, not a tx: ${num(json.summary.unresolvedHashes)} ${json.summary.unresolvedHashes === 1 ? 'hash' : 'hashes'} in the log ${json.summary.unresolvedHashes === 1 ? 'is' : 'are'} not a transaction on chain ${json.chainId}.</p>` : ''}
+      ${json.summary?.localOnlyHashes ? `<p>Not looked up, stays local: ${num(json.summary.localOnlyHashes)} 32-byte ${json.summary.localOnlyHashes === 1 ? 'value' : 'values'} with nothing saying ${json.summary.localOnlyHashes === 1 ? 'it is' : 'they are'} a tx hash. Never sent to the RPC; matched on this machine against the wallet's transactions found by the scan.</p>` : ''}
       ${json.logs?.otherOverlapping ? `<p>${json.logs.otherOverlapping} other session logs overlap this range; add them with <code>--log</code> or <code>--all-sessions</code> before drawing conclusions.</p>` : ''}
       <p>Not audited. Nothing is prevented. An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>
       ${isDemo ? '' : `<p>Verify the rules yourself: <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>${copyBox(`cast nonce ${w?.address} --rpc-url ${RPC}`)}`}
@@ -258,14 +261,14 @@ export function docs({ site, css, publicKey, token }) {
     ['7', 'Foreign signer', 'resolved tx with <code>from ∉ wallets</code> whose hash first appears in a <code>tool_result</code> of tool-call <code>id</code>, and <code>sendingPattern(id) ≠ null</code> <b>and</b> <code>blockTimestamp(tx) ∈ W(id)</code>', '"<b>signed by a wallet not registered here</b>". Finding; shows <code>from</code>, the pattern name, line'],
     ['8', 'Recent other wallet', 'resolved tx, <code>from ∉ wallets</code>, <code>blockTimestamp(tx) ∈ W(id)</code>, no sending pattern', '"other wallet\'s tx mined during this tool call; cannot tell a read from a send". Informational, count + expandable list, never a finding'],
     ['9', 'Observed', 'resolved tx, <code>from ∉ wallets</code>, none of rows 7 to 8', '"other wallet\'s tx referenced (read)". Informational'],
-    ['10', 'Unresolved', 'hash candidate with no tx on this chain (<code>null</code>): block hash, bytes32 salt, testnet tx, other chain', 'counted once in the footer ("n hashes in the log are not transactions on chain 4663"), never listed as a finding'],
+    ['10', 'Unresolved', 'hash candidate with no tx on this chain (<code>null</code>): block hash, bytes32 salt, testnet tx, other chain', 'counted once in the footer ("Looked up, not a tx: n hashes in the log are not a transaction on chain 4663"), never listed as a finding. A 32-byte value with no hash label stays local and is counted separately ("Not looked up, stays local")'],
   ];
-  const toc = [['audit', 'Audit'], ['rules', 'Rules'], ['nonce', 'Nonce ledger'], ['scope', 'Scope'], ['limits', 'Limits'], ['privacy', 'Privacy'], ['verify', 'Verify yourself'], ['signed', 'Signed report']];
+  const toc = [['audit', 'Audit'], ['rules', 'Rules'], ['nonce', 'Nonce ledger'], ['scope', 'Scope'], ['limits', 'Limits'], ['privacy', 'Privacy'], ['hook', 'Hook'], ['verify', 'Verify yourself'], ['signed', 'Signed report']];
   const flags = [
     ['--wallet 0x…', 'Repeatable, required. Lower-cased; checksummed in output.'],
     ['--log f', 'Repeatable. Default = newest <code>~/.claude/projects/&lt;slug(cwd)&gt;/*.jsonl</code>.'],
     ['--all-sessions', 'Include other session logs of the project that overlap the range.'],
-    ['--no-subagents', 'Skip <code>S/subagents/*.jsonl</code> and <code>S/tool-results/*</code>.'],
+    ['--no-subagents', 'Skip subagent transcripts only (<code>S/subagents/</code>). The main session\'s saved tool outputs (<code>S/tool-results/</code>) are still read.'],
     ['--rpc url, --chain-id n', 'Any EVM RPC (then limits apply, unmeasured).'],
     ['--from ISO, --to ISO', 'Override the session span, UTC.'],
     ['--from-block n, --to-block n', 'Override the block range.'],
@@ -280,11 +283,11 @@ export function docs({ site, css, publicKey, token }) {
     <nav class="toc" aria-label="On this page">${toc.map(([id, t]) => `<a href="#${id}">${t}</a>`).join('')}</nav>
     <div class="doc-body">
     <section id="audit"><h2>Audit</h2>
-      ${site.npmLive ? `<p>Try it in 10 seconds, no wallet, no network: <code>npx chainfess demo</code>.</p>${copyBox('npx chainfess demo')}` : ''}
+      ${site.npmLive ? `<p>The CLI is published to npm as <code>chainfess</code>; commands below apply once installed. Try it in 10 seconds, no wallet, no network: <code>npx chainfess demo</code>.</p>${copyBox('npx chainfess demo')}` : '<p>The npm package is not published yet. These are the commands it provides.</p>'}
       <p>Audit a past session: <code>${c} audit --wallet 0x…</code>. Default log = latest Claude Code session for the current directory.</p>
       ${site.npmLive ? copyBox('npx chainfess audit --wallet 0x…') : ''}
       <table class="tbl flags"><caption class="vh">Audit flags</caption><thead><tr><th scope="col">Flag</th><th scope="col">Meaning</th></tr></thead><tbody>${flags.map(([f, m]) => `<tr><td><code>${f}</code></td><td>${m}</td></tr>`).join('')}</tbody></table>
-      <p>Exit codes: 0 zero findings, 1 one or more findings, 2 input error, 3 RPC unavailable, 4 partial scan (unscanned ranges remain; findings may still be listed).</p>
+      <p>Exit codes: 0 zero findings, 1 one or more findings, 2 input error, 3 RPC unavailable, 4 partial scan (unscanned ranges remain; findings may still be listed). <code>demo</code> always exits 0.</p>
     </section>
     <section id="rules"><h2>Rules</h2>
       <p>Four outcomes, deterministic, no LLM: Accounted · Partial · <b>Unaccounted</b> · <b>Foreign signer</b>. The rules are on this page. Applied per on-chain tx from a registered wallet in range and per resolved hash from the log whose <code>from</code> is not registered. Precedence top to bottom; the first matching row wins.</p>
@@ -314,6 +317,7 @@ export function docs({ site, css, publicKey, token }) {
     <section id="scope"><h2>Scope</h2>
       <p>Works with Claude Code session logs (<code>.jsonl</code>), including subagent transcripts and Foundry <code>broadcast/</code> files. EOA wallets only. Robinhood Chain by default; any EVM RPC with <code>--rpc</code> (then limits apply, unmeasured).</p>
       <p>Default scan cap: 210,000 blocks. Over the cap the CLI refuses with the exact number and the <code>--max-hours</code> / <code>--from-block</code> lines to override. On throttling the CLI backs off, then uses smaller batches, then the fallback RPC. Ranges it still cannot read are listed as unscanned and the exit code is 4.</p>
+      <p>Scan speed: about 60 blocks/s, measured on 5 Nov 2026 over 30,000 blocks on the public RPC. At that rate 210,000 blocks (about 6 hours of chain) take about 58 minutes. The plan is the worst case: a scan stops a gap once its nonces are found.</p>
     </section>
     <section id="limits"><h2>Limits</h2>
       <p>Not audited. Nothing is prevented. An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>
@@ -322,11 +326,17 @@ export function docs({ site, css, publicKey, token }) {
         <li>Claude Code logs only.</li>
         <li>A script that signs with another wallet without a recognised key flag or command pattern shows only as "Recent other wallet", not as a finding.</li>
         <li>No balance deltas: the free RPC serves no historic balance.</li>
+        <li>Another wallet's hash with no hash label stays local and is not looked up, so it is not listed. That means fewer Foreign signer lines. A value the log labels as a hash is looked up even if it turns out to be something else.</li>
+        <li>The default scan cap may refuse a session that has few labelled hashes, because fewer known nonces mean a larger scan. Override it with <code>--max-hours h</code> or a block range (<code>--from-block n --to-block n</code>).</li>
       </ul>
     </section>
     <section id="privacy"><h2>Privacy</h2>
-      <p><code>audit</code> and <code>demo</code> run on your machine. The log never leaves it; <code>audit</code>'s only network calls are JSON-RPC reads with block numbers, tx hashes and your wallet address. Only the optional <code>sign</code> contacts our server: it sends the wallets, block range, hashes and a hash of the log, never the log.</p>
-      <p>Reports show hashes, addresses, values, tool name and a line reference. Never command text, never secrets.</p>
+      <p><code>audit</code> and <code>demo</code> run on your machine. The log never leaves it. <code>audit</code>'s only network calls are JSON-RPC reads with block numbers, values the log labels as tx hashes, and your wallet address. A 32-byte value with no such label, or with a key word beside it, is never sent. Only the optional <code>sign</code> contacts our server: it sends the wallets, the block range, a hash of the log, and only hashes of transactions confirmed on chain from a registered wallet; never the log.</p>
+      <p>The footer of a report counts both kinds of 32-byte value: "looked up, not a tx" (labelled as a hash, but not a transaction on this chain) and "not looked up, stays local" (no label, or a key word beside it). Local values are still matched against the wallet's transactions found by the scan, so your own transaction stays Accounted; the scan may just be longer.</p>
+      <p>Reports show hashes, addresses, values, the command pattern name, the source kind and a line reference. Never command text, never secrets.</p>
+    </section>
+    <section id="hook"><h2>Hook</h2>
+      <p>Optional: <code>${c} hook install --wallet 0x…</code> adds a SessionEnd hook that audits automatically. <code>hook uninstall</code> removes it and <code>hook status</code> shows it.</p>
     </section>
     <section id="verify"><h2>Verify yourself</h2>
       <p>Verify the rules yourself: <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>
@@ -364,7 +374,7 @@ export function tokenPage({ site, token, css }) {
     <p class="lead" data-token-lead>${pre ? `$${esc(token.symbol)} launches 6 Nov 2026 (UTC date; no hour published). No CA exists yet; any $${esc(token.symbol)} you see before it is posted here and on <a href="${X_URL}" rel="noopener">@chainfesspro</a> is not ours. The signed-report service switches on with the CA. The free CLI never needs the coin.` : 'The free CLI never needs the coin.'}</p></header>
     <section class="tk-s"><h2>CA</h2>${caSlot(token, { short: true })}</section>
     <section class="tk-s"><h2>What it does</h2>
-      <p>Signed report: burn <span data-burn>${esc(burnText(token))}</span> from the audited wallet, run <code>${c} sign --burn-tx 0x…</code>, get an ed25519-signed statement of chain facts that our server re-checked itself. The server never sees your log, so which hashes you listed is your claim, not ours.</p>
+      <p>Signed report: burn <span data-burn>${esc(burnText(token))}</span> from the audited wallet, ${site.npmLive ? `run <code>${c} sign --burn-tx 0x…</code>` : 'give the CLI\'s <code>sign</code> command the burn transaction'}, get an ed25519-signed statement of chain facts that our server re-checked itself. The server never sees your log, so which hashes you listed is your claim, not ours.</p>
       <p><a href="/docs#signed">Exact rules →</a></p>
     </section>
     <section class="tk-s"><h2>Details</h2>
@@ -389,6 +399,7 @@ export function llms({ site, token, isDemo }) {
     '# Chainfess', '',
     '> Your agent says X. The chain says Y. Chainfess lists every transaction the log does not account for.', '',
     '## Commands',
+    site.npmLive ? '- The CLI is published to npm as `chainfess`; commands below apply once installed.' : '- The npm package is not published yet. These are the commands it provides.',
     ...(site.npmLive ? ['- Try it in 10 seconds, no wallet, no network: `npx chainfess demo`.'] : []),
     `- Audit a past session: \`${c} audit --wallet 0x…\`. Default log = latest Claude Code session for the current directory.`,
     `- \`${c} verify <statement.json>\`: offline check of a signed statement.`, '',
@@ -396,12 +407,14 @@ export function llms({ site, token, isDemo }) {
     '- Four outcomes, deterministic, no LLM: Accounted · Partial · Unaccounted · Foreign signer.',
     '- Unaccounted means "not in this log". A human, a cron job or another session on the same wallet produces the same line. Chainfess does not say who sent it.',
     "- The wallet's nonce says how many transactions it has ever sent. The report shows how many of them this log explains.",
-    '- Reports show hashes, addresses, values, tool name and a line reference. Never command text, never secrets.',
+    '- Reports show hashes, addresses, values, the command pattern name, the source kind and a line reference. Never command text, never secrets.',
     `- Full table: ${SITE}/docs#rules`, '',
     '## Privacy',
-    "- `audit` and `demo` run on your machine. The log never leaves it; `audit`'s only network calls are JSON-RPC reads with block numbers, tx hashes and your wallet address. Only the optional `sign` contacts our server: it sends the wallets, block range, hashes and a hash of the log, never the log.", '',
+    "- `audit` and `demo` run on your machine. The log never leaves it. `audit`'s only network calls are JSON-RPC reads with block numbers, values the log labels as tx hashes, and your wallet address. A 32-byte value with no such label, or with a key word beside it, is never sent. Only the optional `sign` contacts our server: it sends the wallets, the block range, a hash of the log, and only hashes of transactions confirmed on chain from a registered wallet; never the log.", '',
     '## Limits',
     '- Not audited. Nothing is prevented. An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.',
+    "- Another wallet's hash with no hash label stays local and is not looked up, so it is not listed; that means fewer Foreign signer lines. A value the log labels as a hash is looked up even if it is something else.",
+    '- The default scan cap may refuse a session with few labelled hashes, because fewer known nonces mean a larger scan. Override with --max-hours or a block range. Scan speed: about 60 blocks/s, measured on 5 Nov 2026 over 30,000 blocks on the public RPC.',
     '- Works with Claude Code session logs (.jsonl), including subagent transcripts and Foundry broadcast/ files. EOA wallets only. Robinhood Chain by default; any EVM RPC with --rpc (then limits apply, unmeasured).', '',
     '## Token',
     token.launched

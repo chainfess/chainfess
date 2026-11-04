@@ -20,7 +20,6 @@
     "skippedToolResults": 0,
     "skippedBroadcast": 0,
     "broadcastTruncated": false,
-    "withheldCandidates": 0,
     "notLookedUp": 0,
     "note": null
   },
@@ -56,6 +55,7 @@
     ],
     "unscanned": [],
     "seconds": 0,
+    "blocksPerSec": 895250,
     "requests": 88,
     "fallbackUsed": false
   },
@@ -71,10 +71,11 @@
     "recentOther": 0,
     "observed": 1,
     "unresolvedHashes": 0,
+    "localOnlyHashes": 0,
     "mentioned": {
-      "final": 0,
+      "final": 1,
       "text": 0,
-      "none": 2
+      "none": 1
     }
   },
   "txs": [
@@ -137,7 +138,7 @@
       "reverted": false,
       "contractCreation": false,
       "createdAddress": null,
-      "mentioned": "none",
+      "mentioned": "final",
       "source": {
         "kind": "tool_result",
         "line": 3
@@ -167,7 +168,7 @@
       "pattern": null
     }
   ],
-  "exitCode": 1,
+  "exitCode": 0,
   "verify": {
     "rpc": "https://robinhood-rpc.publicnode.com"
   }
