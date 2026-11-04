@@ -1,0 +1,7 @@
+{
+  "name": "chainfess-web-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only tooling for the static site. The product has zero runtime dependencies.",
+  "devDependencies": { "opentype.js": "^1.3.4", "sharp": "^0.33.5" }
+}

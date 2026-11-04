@@ -1,0 +1,16 @@
+{
+  "v": 1, "tool": "chainfess", "toolVersion": "0.1.0", "demo": true,
+  "generatedAt": "2026-11-05T14:02:00Z", "chainId": 4663,
+  "logs": { "main": ["demo-session.jsonl"], "subagents": 0, "toolResults": 0, "broadcast": 0, "unreadableLines": 0, "otherOverlapping": 0 },
+  "session": { "tStart": "2026-11-05T11:40:00Z", "tEnd": "2026-11-05T13:55:00Z", "startBlock": 106210004, "endBlock": 106290118, "blocks": 80114, "note": null },
+  "wallets": [ { "address": "0xD00D00000000000000000000000000000000DE30", "nonce": 2, "inLog": 1, "notInLog": 1, "uIn": 1, "uOut": 0, "neverSent": false } ],
+  "scan": { "plannedBlocks": 41000, "scannedBlocks": 41000, "gaps": [ { "from": 106231200, "to": 106272200 } ], "unscanned": [], "seconds": 1, "requests": 0 },
+  "summary": { "findings": 2, "accounted": 1, "partial": 0, "unaccounted": 1, "foreignSigner": 1, "preSession": 0, "postSession": 0, "pending": 0, "recentOther": 0, "observed": 1, "unresolvedHashes": 3, "mentioned": { "final": 1, "text": 0, "none": 1 } },
+  "txs": [
+    { "hash": "0xde30a1000000000000000000000000000000000000000000000000000000a001", "status": "observed", "finding": false, "from": "0xBEEF000000000000000000000000000000000B0B", "to": "0xBEEF000000000000000000000000000000000C0C", "toLabel": "eoa", "nonce": 812, "block": 106100422, "time": "2026-11-05T08:29:11Z", "valueWei": "0", "valueEth": "0", "reverted": false, "contractCreation": false, "createdAddress": null, "mentioned": "none", "source": { "kind": "tool_result", "line": 88 }, "pattern": null },
+    { "hash": "0xde30a2000000000000000000000000000000000000000000000000000000a002", "status": "accounted", "finding": false, "from": "0xD00D00000000000000000000000000000000DE30", "to": "0xD00D00000000000000000000000000000000DE30", "toLabel": "eoa", "nonce": 0, "block": 106231200, "time": "2026-11-05T12:15:22Z", "valueWei": "0", "valueEth": "0", "reverted": false, "contractCreation": false, "createdAddress": null, "mentioned": "final", "source": { "kind": "tool_result", "line": 412 }, "pattern": "cast-send" },
+    { "hash": "0xde30a3000000000000000000000000000000000000000000000000000000a003", "status": "unaccounted", "finding": true, "from": "0xD00D00000000000000000000000000000000DE30", "to": "0xD00D00000000000000000000000000000000DE30", "toLabel": "eoa", "nonce": 1, "block": 106251300, "time": "2026-11-05T13:02:11Z", "valueWei": "0", "valueEth": "0", "reverted": false, "contractCreation": false, "createdAddress": null, "mentioned": "none", "source": { "kind": null, "line": null }, "pattern": null },
+    { "hash": "0xde30a4000000000000000000000000000000000000000000000000000000a004", "status": "foreign-signer", "finding": true, "from": "0xFACE000000000000000000000000000000000F00", "to": "0xFACE000000000000000000000000000000000F01", "toLabel": "contract", "nonce": 7, "block": 106272200, "time": "2026-11-05T13:31:40Z", "valueWei": "0", "valueEth": "0", "reverted": false, "contractCreation": false, "createdAddress": null, "mentioned": "none", "source": { "kind": "tool_result", "line": 633 }, "pattern": "cast-send" }
+  ],
+  "exitCode": 1
+}
