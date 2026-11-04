@@ -16,7 +16,7 @@ const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.t
 
 const FULL_RE = /0x[0-9a-fA-F]{64}(?![0-9a-fA-F])/g;
 const BARE_RE = /(?<![0-9a-fA-Fx])[0-9a-fA-F]{64}(?![0-9a-fA-F])/g;
-const PARTIAL_RE = /0x([0-9a-fA-F]{4,20})(?:…|\.{2,3}|\\u2026)(?:([0-9a-fA-F]{4,8})(?![0-9a-fA-F.]))?/g;
+const PARTIAL_RE = /0x([0-9a-fA-F]{4,20})(?:…|\.{2,3}|\\u2026)(?:([0-9a-fA-F]{4,8})(?![0-9a-fA-F]))?/g;
 // A 32-byte value next to one of these words is treated as a possible private key and never sent to any RPC.
 const KEY_CONTEXT_RE = /(priv(ate)?[\s_\-]?key|privkey|secret|mnemonic|seed|signing[\s_\-]?key|_key\b|\bkey\b|--key|\bpk\b|wallet\s*\(|signer\s*\(|account\s*\()[^0-9a-fA-F]{0,32}(\(\d+\)\s*)?["'`]?$/i;
 

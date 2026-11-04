@@ -78,7 +78,7 @@ export function buildAll(root = HERE) {
   });
   const trunc = '0x1234' + 'ee'.repeat(28) + 'abcd';
   write('truncated-hash', {
-    'session.jsonl': [start(), say(T(5), 'sent it: 0x1234…abcd'), end()],
+    'session.jsonl': [start(), say(T(5), 'sent it: 0x1234…abcd.'), end()],
     'rpc.json': world([W], { [W]: 1 }, [tx(trunc, W, 0, inWin)]),
   });
   write('not-a-tx', {
