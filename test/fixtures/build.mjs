@@ -263,7 +263,7 @@ export function buildDemo(dir = join(HERE, '..', '..', 'fixtures', 'demo')) {
     result(t(5, 1), 'toolu_d2', `from ${read}\nblockNumber 90000000`),
     use(t(9), 'toolu_d3', `cast send ${payee} --private-key $OTHER_KEY --rpc-url $RPC`),
     result(t(9, 3), 'toolu_d3', `status 1\ntransactionHash ${h('demo-foreign')}`),
-    say(t(14), `Done. Funded the vault in one transaction: ${h("demo-accounted").slice(0, 8)}…${h("demo-accounted").slice(-6)}.`),
+    say(t(14), `Done. Funded the vault in one transaction: ${h('demo-accounted').slice(0, 8)}…${h('demo-accounted').slice(-6)}.`),
   ].map((e) => JSON.stringify(e)).join('\n') + '\n';
   const rpc = {
     chainId: 4663, latest, latestTs, blockTime: BLOCK_TIME,

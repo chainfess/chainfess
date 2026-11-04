@@ -147,15 +147,15 @@ function flags(t) {
 }
 
 function nonceLine(w, report) {
-  if (w.neverSent) return `nonce 0: this wallet has never sent a transaction.`;
+  if (w.neverSent) return ['nonce 0: this wallet has never sent a transaction.'];
   const parts = [];
   if (w.uIn) parts.push(`${w.uIn} inside this session (below)`);
   const other = w.uOut - w.uAfter - w.uBefore;
   if (w.uBefore) parts.push(`${w.uBefore} before it`);
   if (w.uAfter) parts.push(`${w.uAfter} after it`);
   if (other > 0) parts.push(report.scan.unscanned.length ? `${other} not placed (unscanned ranges remain)` : `${other} outside it`);
-  const tail = w.notInLog ? ` ${w.notInLog} do${w.notInLog === 1 ? 'es' : ''} not: ${parts.join(', ')}.` : ' All of them.';
-  return `nonce ${w.nonce}: this wallet has sent ${w.nonce} tx. ${w.inLog} ${w.inLog === 1 ? "appears" : "appear"} in this log.${tail}`;
+  const first = `nonce ${w.nonce}: this wallet has sent ${w.nonce} tx. ${w.inLog} ${w.inLog === 1 ? 'appears' : 'appear'} in this log.`;
+  return w.notInLog ? [first, `${w.notInLog} do${w.notInLog === 1 ? 'es' : ''} not: ${parts.join(', ')}.`] : [first];
 }
 
 export function renderText(report, { color = false, quiet = false } = {}) {
@@ -172,10 +172,12 @@ export function renderText(report, { color = false, quiet = false } = {}) {
   const walletList = report.wallets.map((w) => short(w.address, 7, 4)).join(', ');
   head(`wallet ${walletList}   log ${report.logs.main.join(', ')}${logBits.length ? ` (+${logBits.join(', ')})` : ''}`);
   head(`session ${span(report)} → blocks ${n(report.session.startBlock)}–${n(report.session.endBlock)} (${n(report.session.blocks)} blocks)`);
-  for (const w of report.wallets) head((report.wallets.length > 1 ? `${short(w.address, 7, 4)} ` : '') + nonceLine(w, report));
+  for (const w of report.wallets) {
+    for (const line of nonceLine(w, report)) head((report.wallets.length > 1 ? `${short(w.address, 7, 4)} ` : '') + line);
+  }
   const gaps = report.scan.gaps.length;
   head(report.scan.plannedBlocks
-    ? `scanned ${n(report.scan.scannedBlocks)} blocks in ${plural(gaps, 'gap')} (${report.scan.seconds} s)`
+    ? `scanned ${n(report.scan.scannedBlocks)} blocks in ${plural(gaps, 'gap')} (${report.demo ? 'recorded replies' : `${report.scan.seconds} s`})`
     : 'scanned 0 blocks: the nonces in this log leave no gap inside the session');
   if (report.session.note) head(c.dim(`note: ${report.session.note}`));
   lines.push('');
@@ -184,12 +186,15 @@ export function renderText(report, { color = false, quiet = false } = {}) {
   const findings = report.txs.filter((t) => t.finding);
   lines.push(findings.length ? c.red(`FINDINGS (${findings.length})`) : c.green('FINDINGS (0)'));
   for (const t of by(STATUS.UNACCOUNTED)) {
-    lines.push(`  ${c.red('not in this log')}  ${t.hash}`);
+    lines.push(`  ${c.red('not in this log')}`);
+    lines.push(`    ${t.hash}`);
     lines.push(c.dim(`    nonce ${t.nonce}  block ${n(t.block)}  ${hhmmss(t.time)}  ${t.valueEth} ETH ${target(t)}${flags(t)}`));
   }
   for (const t of by(STATUS.FOREIGN)) {
-    lines.push(`  ${c.red('signed by a wallet not registered here')}  ${t.hash}`);
-    lines.push(c.dim(`    from ${t.from}  pattern ${t.pattern}  ${t.source.kind} L${t.source.line}  block ${n(t.block)}  ${hhmmss(t.time)}${flags(t)}`));
+    lines.push(`  ${c.red('signed by a wallet not registered here')}`);
+    lines.push(`    ${t.hash}`);
+    lines.push(c.dim(`    from ${t.from}`));
+    lines.push(c.dim(`    pattern ${t.pattern}  ${t.source.kind} L${t.source.line}  block ${n(t.block)}  ${hhmmss(t.time)}${flags(t)}`));
   }
   if (!findings.length) {
     for (const w of report.wallets) {
@@ -225,8 +230,20 @@ export function renderText(report, { color = false, quiet = false } = {}) {
   if (recent.length) lines.push(c.dim(`other wallets' txs mined during a tool call; cannot tell a read from a send: ${recent.length} (--json lists them)`));
 
   lines.push('');
-  for (const line of footer(report)) lines.push(c.dim(line));
+  for (const line of footer(report)) for (const piece of wrap(line, 96)) lines.push(c.dim(piece));
   return lines.join('\n') + '\n';
+}
+
+function wrap(line, width) {
+  const indent = line.match(/^\s*/)[0];
+  if (indent) return [line]; // commands stay whole so they can be copied
+  const out = [];
+  let cur = '';
+  for (const word of line.split(' ')) {
+    if (cur && cur.length + word.length + 1 > width) { out.push(cur); cur = word; } else cur = cur ? `${cur} ${word}` : word;
+  }
+  if (cur) out.push(cur);
+  return out;
 }
 
 function footer(report) {
@@ -250,6 +267,6 @@ function footer(report) {
   const verify = [];
   if (first) verify.push(`cast tx ${first.hash}${rpcFlag}`);
   if (report.wallets[0]) verify.push(`cast nonce ${report.wallets[0].address}${rpcFlag}`);
-  if (verify.length) out.push(`Verify: ${verify.join(' ; ')}`);
+  if (verify.length) out.push('Verify:', ...verify.map((v) => `  ${v}`));
   return out;
 }

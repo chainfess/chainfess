@@ -41,7 +41,7 @@ export async function audit(name, opts = {}) {
     fallback: false,
     ...rest,
   });
-  const text = renderText(report, {});
+  const text = renderText(report, {}).replace(/\n(?=\S)/g, ' '); // footer wraps at 96 columns; phrases are matched whole
   return { report, text, json: JSON.stringify(report), replay, raw, dir, world };
 }
 
