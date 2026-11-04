@@ -1,0 +1,29 @@
+[Unit]
+Description=Chainfess signing server (production)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chainfess
+Group=chainfess
+WorkingDirectory=/opt/chainfess
+Environment=NODE_ENV=production
+Environment=PORT=4905
+Environment=STATE_DIR=/opt/chainfess/state
+Environment=TOKEN_JSON=/opt/chainfess/web/token.json
+Environment=SIGNING_KEY_FILE=/opt/chainfess/state/signing.key
+Environment=RPC_URL=https://robinhood-rpc.publicnode.com
+Environment=MAX_SCAN_BLOCKS=210000
+ExecStart=/usr/bin/node /opt/chainfess/server/index.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/opt/chainfess/state
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target
