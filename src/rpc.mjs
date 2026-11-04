@@ -140,13 +140,13 @@ export function createRpc({
         if (nonNull && got.some((x) => x === null)) {
           for (let j = 0; j < idx.length; j++) if (got[j] !== null) results[idx[j]] = got[j];
           pending = pending.filter((i) => results[i] === undefined || results[i] === null);
-          throw new Throttle('null in a range the chain has passed');
+          noteThrottle();
+          throw new Error('null in a range the chain has passed');
         }
         for (let j = 0; j < idx.length; j++) results[idx[j]] = got[j];
         pending = pending.slice(idx.length);
       } catch (e) {
         failures++;
-        if (e instanceof Throttle) noteThrottle();
         if (failures >= limit) throw e;
         if (failures >= 3) {
           const next = SIZE_STEPS.find((s) => s < cur);

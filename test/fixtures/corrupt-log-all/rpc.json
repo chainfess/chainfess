@@ -1,0 +1,16 @@
+{
+ "chainId": 4663,
+ "latest": 100000000,
+ "latestTs": 1793836800,
+ "blockTime": 0.104,
+ "wallets": [
+  "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+ ],
+ "nonces": {
+  "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1": 0
+ },
+ "code": {
+  "0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4": "0x"
+ },
+ "txs": []
+}

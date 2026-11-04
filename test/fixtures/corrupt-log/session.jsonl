@@ -1,0 +1,5 @@
+{"type":"user","timestamp":"2026-11-01T10:00:00.000Z","sessionId":"sess-1","uuid":"u64","parentUuid":null,"isSidechain":false,"message":{"role":"user","content":"start"}}
+{not json
+{"type":"user","timestamp":"2026-11-01T10:02:00.000Z", broken 0xeac35ed07d8e401c4764a97e694df82fc8c8cf688bc5db7e88ac3dbf6b244c8a
+also bad
+{"type":"assistant","timestamp":"2026-11-01T10:10:00.000Z","sessionId":"sess-1","uuid":"u65","parentUuid":null,"isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}

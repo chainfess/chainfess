@@ -1,0 +1,4 @@
+{"type":"user","timestamp":"2026-11-01T10:00:00.000Z","sessionId":"sess-1","uuid":"u5","parentUuid":null,"isSidechain":false,"message":{"role":"user","content":"start"}}
+{"type":"assistant","timestamp":"2026-11-01T10:05:00.000Z","sessionId":"sess-1","uuid":"u6","parentUuid":null,"isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"node pay.mjs"}}]}}
+{"type":"user","timestamp":"2026-11-01T10:05:03.000Z","sessionId":"sess-1","uuid":"u7","parentUuid":null,"isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"sent 0x9350872d712a127c494d7dc35e46b0bc9e62e288239708e581dfc3a1400154a4"}]}}
+{"type":"assistant","timestamp":"2026-11-01T10:10:00.000Z","sessionId":"sess-1","uuid":"u8","parentUuid":null,"isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}

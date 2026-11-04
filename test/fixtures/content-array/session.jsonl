@@ -1,0 +1,4 @@
+{"type":"user","timestamp":"2026-11-01T10:00:00.000Z","sessionId":"sess-1","uuid":"u91","parentUuid":null,"isSidechain":false,"message":{"role":"user","content":"start"}}
+{"type":"assistant","timestamp":"2026-11-01T10:02:00.000Z","sessionId":"sess-1","uuid":"u92","parentUuid":null,"isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cast send"}}]}}
+{"type":"user","timestamp":"2026-11-01T10:02:01.000Z","sessionId":"sess-1","uuid":"u93","parentUuid":null,"isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":[{"type":"text","text":"tx 0x2e6839f29b1ea4ae7bedab9223832ba40e51fd637755656065729aca231e2c86"},{"type":"image","source":{}}]}]}}
+{"type":"assistant","timestamp":"2026-11-01T10:10:00.000Z","sessionId":"sess-1","uuid":"u94","parentUuid":null,"isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}

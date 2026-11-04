@@ -33,7 +33,7 @@ export function createHeaderReader(rpc, cache = new Map()) {
 }
 
 /** First block with timestamp >= t, searching (lo, hi] where ts(hi) >= t. Returns null if t is past latest. */
-async function firstAtOrAfter(reader, t, latest, latestTs, hintHi = null) {
+async function firstAtOrAfter(reader, t, latest, latestTs, { hintLo = null, hintHi = null } = {}) {
   if (latestTs < t) return null;
   let hi = latest;
   if (hintHi !== null && hintHi < latest) {
@@ -42,6 +42,7 @@ async function firstAtOrAfter(reader, t, latest, latestTs, hintHi = null) {
   }
   const span = Math.ceil(((latestTs - t) / BLOCK_TIME) * 1.3) + 2;
   let lo = Math.max(0, latest - span);
+  if (hintLo !== null && hintLo > lo && hintLo < hi) lo = hintLo;
   let [tsLo] = await reader.read([lo]);
   while (tsLo >= t && lo > 0) {
     hi = lo;
@@ -49,12 +50,24 @@ async function firstAtOrAfter(reader, t, latest, latestTs, hintHi = null) {
     [tsLo] = await reader.read([lo]);
   }
   if (tsLo >= t) return lo; // lo == 0: t is before genesis
+  let round = 0;
   while (hi - lo > 1) {
-    const step = (hi - lo) / 9;
+    // Block time is close to constant, so aim at the interpolated spot; every other round is even, so the worst case stays log9.
     const probes = [];
-    for (let i = 1; i <= 8; i++) {
-      const p = Math.floor(lo + step * i);
-      if (p > lo && p < hi && !probes.includes(p)) probes.push(p);
+    const add = (p) => {
+      const q = Math.floor(p);
+      if (q > lo && q < hi && !probes.includes(q)) probes.push(q);
+    };
+    if (round++ % 2 === 0) {
+      const [tsHi] = await reader.read([hi]);
+      const est = lo + ((t - tsLo) / Math.max(1, tsHi - tsLo)) * (hi - lo);
+      const d = Math.max(50, (hi - lo) / 40);
+      for (const f of [-1, -0.2, -0.04, -0.008, 0.008, 0.04, 0.2, 1]) add(est + f * d);
+      probes.sort((x, y) => x - y);
+    }
+    if (!probes.length) {
+      const step = (hi - lo) / 9;
+      for (let i = 1; i <= 8; i++) add(lo + step * i);
     }
     if (!probes.length) break;
     const ts = await reader.read(probes);
@@ -89,7 +102,7 @@ export async function mapRange({ rpc, tStartMs, tEndMs, latest, latestTs, cache,
   if (startBlock === null) {
     notes.push('session starts after the latest block; clock ahead');
     startBlock = latest;
-  } else if (startBlock === 0 && reader.cache.get(0) >= a && a < reader.cache.get(0)) {
+  } else if (startBlock === 0 && a < reader.cache.get(0)) {
     notes.push('session start is before block 0; clamped');
   }
   let endBlock;
@@ -98,7 +111,7 @@ export async function mapRange({ rpc, tStartMs, tEndMs, latest, latestTs, cache,
     notes.push('session still running or clock ahead');
   } else {
     const est = startBlock + Math.ceil(((b - a) / BLOCK_TIME) * 1.5) + 100;
-    const first = await firstAtOrAfter(reader, b + 1, latest, latestTs, est);
+    const first = await firstAtOrAfter(reader, b + 1, latest, latestTs, { hintLo: startBlock, hintHi: est });
     endBlock = first === null ? latest : Math.max(startBlock, first - 1);
     if (first === 0) { endBlock = 0; notes.push('session end is before block 0; clamped'); }
   }

@@ -1,0 +1,6 @@
+{"type":"last-prompt","sessionId":"s"}
+{"type":"file-history-snapshot","timestamp":"2020-01-01T00:00:00Z"}
+{"type":"user","timestamp":"2026-11-01T10:00:00.000Z","sessionId":"sess-1","uuid":"u121","parentUuid":null,"isSidechain":false,"message":{"role":"user","content":"start"}}
+{"type":"queue-operation","timestamp":"2026-11-01T10:01:00.000Z","content":"queued 0xd36be6494248ee06ac18f38ea1119dfe4699fdcfcbbcc30a2e4f1ccbce68dfac"}
+{"type":"user","sessionId":"s","uuid":"nots","message":{"role":"user","content":"no timestamp on this one"}}
+{"type":"assistant","timestamp":"2026-11-01T10:10:00.000Z","sessionId":"sess-1","uuid":"u122","parentUuid":null,"isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}

@@ -1,0 +1,50 @@
+{
+ "chainId": 4663,
+ "latest": 100000000,
+ "latestTs": 1793793600,
+ "blockTime": 0.104,
+ "demoWallets": [
+  "0xdea1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1de"
+ ],
+ "demoNow": "2026-11-04T12:00:00Z",
+ "nonces": {
+  "0xdea1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1de": 9
+ },
+ "code": {
+  "0x77777777777777777777777777777777777777c0": "0x60806040"
+ },
+ "txs": [
+  {
+   "hash": "0x7485fc9a91208a06a1442ca82f0a4c7b6e0101cb2ae7c0b683331197aacc8ae5",
+   "from": "0xdea1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1de",
+   "to": "0x77777777777777777777777777777777777777c0",
+   "nonce": 7,
+   "block": 99920404,
+   "value": "0x2386f26fc10000"
+  },
+  {
+   "hash": "0x92b9e5a06df6044d67d658b7c163a105c31041bd43a113e9c3a3826e647ec6d8",
+   "from": "0xdea1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1de",
+   "to": "0x5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5eed",
+   "nonce": 8,
+   "block": 99925962,
+   "value": "0x3782dace9d90000"
+  },
+  {
+   "hash": "0xa51161f809ec4dc3cc2e9abb17549184e4cf02ba5b5a35ea75e035df2ee0dc7c",
+   "from": "0x5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5eed",
+   "to": "0x77777777777777777777777777777777777777c0",
+   "nonce": 41,
+   "block": 99924443,
+   "value": "0x0"
+  },
+  {
+   "hash": "0x3928db72ff86102897ced08fab73a41f2654295f298154c16929be838d36ef42",
+   "from": "0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+   "to": "0x77777777777777777777777777777777777777c0",
+   "nonce": 3,
+   "block": 90000000,
+   "value": "0x0"
+  }
+ ]
+}
