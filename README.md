@@ -57,7 +57,7 @@ Not audited. Nothing is prevented. An agent with shell access can edit its own l
 
 A script that signs with another wallet without a recognised key flag or command pattern shows only as "other wallet's tx mined during this tool call", not as a finding. So does a sending command that also printed a tx of your own wallet, or txs of more than two other wallets, because that output is a dump, not a send.
 
-No balance deltas: the free RPC refuses historical balances. A planned scan over 210,000 blocks (about 6 h of chain) is refused unless you pass `--max-hours` or a block range. Over 512 MB, a saved tool output is not read; the footer says so, because "not in this log" lines may then be explained by that output.
+No balance deltas: the free RPC refuses historical balances. A planned scan over 210,000 blocks (about 6 h of chain, about 58 minutes to scan at the public RPC's measured 60 blocks/s) is refused unless you pass `--max-hours` or a block range. Over 512 MB, a saved tool output is not read; the footer says so, because "not in this log" lines may then be explained by that output.
 
 ## Signed report
 
