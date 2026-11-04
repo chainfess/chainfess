@@ -29,7 +29,6 @@ const text = (s, x, y, size, fill, track = 0) => {
 const token = JSON.parse(readFileSync(join(ROOT, 'web', 'token.json'), 'utf8'));
 const keyPath = join(ROOT, 'marketing', 'src', 'key-visual-1200x630.png');
 let base;
-if (existsSync(keyPath)) {
   base = sharp(keyPath).resize(1200, 630, { fit: 'cover' });
 } else {
   // Fallback: the strip's own language, no asset.
@@ -39,7 +38,6 @@ if (existsSync(keyPath)) {
     <path d="${line(400, [240, 900])}" fill="none" stroke="#1C3F8F" stroke-width="3"/><path d="${line(560, [240, 570, 900])}" fill="none" stroke="#141616" stroke-width="3"/>
     <ellipse cx="572" cy="515" rx="64" ry="84" fill="none" stroke="#D2331C" stroke-width="8"/></svg>`;
   base = sharp(Buffer.from(svg));
-}
 const live = token.launched && /^0x[0-9a-fA-F]{40}$/.test(token.ca) && !/^0x0{40}$/.test(token.ca);
 const overlay = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
   ${text('Your agent says X.', 44, 86, 46, '#1C3F8F', -2.4)}
@@ -55,9 +53,6 @@ const fav = readFileSync(join(PUB, 'favicon.svg'));
 await sharp(fav, { density: 300 }).resize(32, 32).png().toFile(join(PUB, 'favicon-32.png'));
 await sharp(fav, { density: 600 }).resize(192, 192).png().toFile(join(PUB, 'icon-192.png'));
 
-if (existsSync(keyPath)) {
-  await sharp(keyPath).resize(1100).webp({ quality: 42 }).toFile(join(PUB, 'rules-bg.webp'));
-}
 const tile = join(ROOT, 'marketing', 'src', 'paper-tile.webp');
 if (existsSync(tile)) writeFileSync(join(PUB, 'paper-tile.webp'), readFileSync(tile));
 console.log(`og.mjs: og.png ${(og.length / 1024).toFixed(0)} KB${live ? ' with CA' : ''}`);

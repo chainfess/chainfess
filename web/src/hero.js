@@ -1,45 +1,25 @@
-// Chart recorder motion. Paper only moves left; both pens stay at fixed tips and swing to whatever the trace is at their tip.
-// Only transforms and opacity change per frame.
+// The instrument writes once on load: the paper feeds left, both pens follow their trace at a fixed tip,
+// then the mismatch is circled. Scroll only flattens the tilt. Nothing is pinned. Only transforms and opacity change.
 (function () {
-  var d = document.documentElement, root = document.querySelector('.hero'), rec = document.querySelector('.rec');
-  var el = document.getElementById('rec-data');
-  if (!window.gsap || !window.ScrollTrigger || !root || !el) { d.classList.remove('m'); return; }
+  var d = document.documentElement, inst = document.querySelector('.hero .inst');
+  if (!inst || !window.gsap || !window.ScrollTrigger) { d.classList.remove('m'); return; }
   if (window.__recReady) window.__recReady();
-  var D = JSON.parse(el.textContent);
   gsap.registerPlugin(ScrollTrigger);
 
-  var movers = [].slice.call(rec.querySelectorAll('.mv'));
-  var plane = rec.querySelector('.plane'), shadow = rec.querySelector('.plane-shadow');
-  var arms = {}, shadows = {};
-  ['log', 'chain'].forEach(function (p) {
-    arms[p] = rec.querySelector('.arm[data-pen="' + p + '"]');
-    shadows[p] = rec.querySelector('.arm-sh[data-pen="' + p + '"]');
-  });
-  var ans = [].slice.call(rec.querySelectorAll('.an')).map(function (g) {
-    return { g: g, x: +g.dataset.at, pen: g.dataset.pen, on: false };
-  });
-  var marks = [].slice.call(rec.querySelectorAll('.mk')).map(function (g) {
-    var a = g.querySelector('.gp'), b = g.querySelector('.gp2');
-    gsap.set(a, { strokeDasharray: 1, strokeDashoffset: 1 });
-    gsap.set(b, { opacity: 0 });
-    var tl = gsap.timeline({ paused: true }).to(a, { strokeDashoffset: 0, duration: 0.35, ease: 'power1.inOut' }).to(b, { opacity: 1, duration: 0.08 });
-    return { x: +g.dataset.at, tl: tl, on: false };
-  });
-  var counters = { log: rec.querySelector('[data-count="log"]'), chain: rec.querySelector('[data-count="chain"]') };
-  var stopEls = [].slice.call(document.querySelectorAll('.stop'));
-  var bar = document.querySelector('.progress i');
-  var nonceEl = document.querySelector('[data-nonce-line]');
-  var nonceText = nonceEl ? nonceEl.textContent : '';
+  var D = JSON.parse(inst.querySelector('.inst-data').textContent);
+  var sheet = inst.querySelector('.sheet'), plane = inst.querySelector('.inst-plane'), shadow = inst.querySelector('.inst-shadow');
+  var feeds = [].slice.call(inst.querySelectorAll('.feed'));
+  var arms = { log: inst.querySelector('.arm-log'), chain: inst.querySelector('.arm-chain') };
+  var marks = inst.querySelector('.marks');
+  var loops = [].slice.call(inst.querySelectorAll('.gp'));
+  var missT = inst.querySelector('.miss');
 
-  function fit() {
-    var top = root.querySelector('.lede').getBoundingClientRect();
-    var stops = root.querySelector('.stops').getBoundingClientRect();
-    var tb = root.querySelector('.tb').getBoundingClientRect();
-    var used = Math.max(stops.bottom, tb.bottom) - root.getBoundingClientRect().top;
-    var s = Math.max(0.66, Math.min(innerWidth / 1310, (innerHeight - used - 14) / (D.h + 26)));
-    d.style.setProperty('--s', s.toFixed(4));
+  var W, H, tip, L;
+  function measure() {
+    W = sheet.offsetWidth; H = sheet.offsetHeight;
+    L = arms.log.offsetWidth;
+    tip = arms.log.offsetLeft;
   }
-
   function yAt(pts, x) {
     var lo = 0, hi = pts.length - 1;
     if (x <= pts[0][0]) return pts[0][1];
@@ -48,112 +28,52 @@
     var a = pts[lo], b = pts[hi], k = (x - a[0]) / (b[0] - a[0] || 1);
     return a[1] + (b[1] - a[1]) * k;
   }
-
   var settle = { v: 1 };
-  function setArm(p, dx) {
-    var L = D.len[p], y = yAt(D.pts[p], D.tips[p] - dx), dy = y - D.base[p];
-    dy = Math.max(-L * 0.9, Math.min(L * 0.9, dy));
-    var phi = Math.asin(-dy / L);
-    var deg = phi * 180 / Math.PI + settle.v * (p === 'log' ? 5 : 2.6);
-    var tx = -L * (1 - Math.cos(phi));
-    arms[p].style.transform = 'translate3d(' + tx.toFixed(2) + 'px,0,0) rotate(' + deg.toFixed(3) + 'deg)';
-    var sh = shadows[p];
-    if (sh) sh.style.transform = 'translate3d(' + tx.toFixed(2) + 'px,16px,0) rotate(' + (deg + (+sh.dataset.phi0 || 0)).toFixed(3) + 'deg)';
-  }
-
-  function countUpTo(arr, x) { var n = 0; for (var i = 0; i < arr.length; i++) if (arr[i] <= x) n++; return n; }
-  function pad(n) { return (n < 10 ? '0' : '') + n; }
-  var last = { log: -1, chain: -1 };
-
-  function drawDx(dx) {
+  function draw(dx) {
     var tr = 'translate3d(' + dx.toFixed(2) + 'px,0,0)';
-    for (var i = 0; i < movers.length; i++) movers[i].style.transform = tr;
-    setArm('log', dx); setArm('chain', dx);
-    var xLog = D.tips.log - dx, xChain = D.tips.chain - dx;
-    ans.forEach(function (a) {
-      var on = (a.pen === 'log' ? xLog : xChain) >= a.x + 6;
-      if (on !== a.on) { a.on = on; a.g.style.opacity = on ? 1 : 0; }
+    for (var i = 0; i < feeds.length; i++) feeds[i].style.transform = tr;
+    // Paper x under the tip, in viewBox units (1000 = left edge of the sheet).
+    var vx = 1000 + ((tip - dx) / W) * 1000;
+    ['log', 'chain'].forEach(function (p) {
+      var dy = ((yAt(D.pts[p], vx) - D.fy[p] * 1000) / 1000) * H;
+      dy = Math.max(-L * 0.9, Math.min(L * 0.9, dy));
+      var phi = Math.asin(-dy / L);
+      var deg = (phi * 180) / Math.PI + settle.v * (p === 'log' ? 4 : 3);
+      arms[p].style.transform = 'translate3d(' + (-L * (1 - Math.cos(phi))).toFixed(2) + 'px,0,0) rotate(' + deg.toFixed(3) + 'deg)';
     });
-    marks.forEach(function (m) {
-      var on = xChain >= m.x + 26;
-      if (on !== m.on) { m.on = on; if (on) m.tl.play(); else m.tl.reverse(); }
-    });
-    var cl = countUpTo(D.logXs, xLog), cc = countUpTo(D.chainXs, xChain);
-    if (cl !== last.log) { last.log = cl; counters.log.textContent = pad(cl); }
-    if (cc !== last.chain) { last.chain = cc; counters.chain.textContent = pad(cc); }
   }
 
-  // Scroll keyframes: paper position with holds at each stop.
-  var S = D.stops, keys = [];
-  var hasGap = S.d2 != null;
-  if (hasGap) keys = [[0, S.d0], [0.05, S.d0], [0.30, S.d1], [0.36, S.d1], [0.62, S.d2], [0.74, S.d2], [0.92, S.d3], [1, S.d3]];
-  else keys = [[0, S.d0], [0.06, S.d0], [0.45, S.d1], [0.55, S.d1], [0.92, S.d3], [1, S.d3]];
-  var stopAt = hasGap ? [0, 0.22, 0.56, 0.84] : [0, 0.38, 0.84];
-  function dxAt(u) {
-    for (var i = 1; i < keys.length; i++) if (u <= keys[i][0]) {
-      var a = keys[i - 1], b = keys[i], k = (u - a[0]) / (b[0] - a[0] || 1);
-      return a[1] + (b[1] - a[1]) * k;
-    }
-    return keys[keys.length - 1][1];
-  }
-
-  var counted = false, activeStop = 0;
-  function countNonce() {
-    if (counted || !nonceEl) return;
-    counted = true;
-    var nums = nonceText.match(/\d+/g) || [], o = { k: 0 };
-    gsap.to(o, { k: 1, duration: 0.8, ease: 'power2.out', onUpdate: function () {
-      var i = 0;
-      nonceEl.textContent = nonceText.replace(/\d+/g, function () { return Math.round(+nums[i++] * o.k); });
-    }, onComplete: function () { nonceEl.textContent = nonceText; } });
-  }
-  function setStop(u) {
-    var n = 0;
-    for (var i = 0; i < stopAt.length; i++) if (u >= stopAt[i]) n = i;
-    if (n !== activeStop) {
-      activeStop = n;
-      stopEls.forEach(function (e, i) { e.classList.toggle('on', i === n); });
-      if (n === stopEls.length - 1) countNonce();
-    }
-  }
-
-  var state = { u: 0 };
-  function render() {
-    drawDx(dxAt(state.u));
-    setStop(state.u);
-    if (bar) bar.style.transform = 'scaleX(' + state.u.toFixed(4) + ')';
-  }
-
-  fit();
-  ans.forEach(function (a) { a.on = true; });
-  gsap.set(rec.querySelector('.rec-in'), { x: 150, opacity: 0 });
+  measure();
+  var state = { k: 0 };
+  function start() { return Math.max(0, tip - D.f0 * W + 6); }
+  function frame() { draw(start() * (1 - state.k)); }
+  gsap.set(loops, { strokeDasharray: 1, strokeDashoffset: 1 });
+  if (missT) gsap.set(missT, { opacity: 0, y: 6 });
+  gsap.set(marks, { opacity: 1 });
+  frame();
   d.classList.add('m-ready');
-  render();
 
-  gsap.timeline()
-    .to(rec.querySelector('.rec-in'), { x: 0, opacity: 1, duration: 0.6, ease: 'power3.out' })
-    .to(settle, { v: 0, duration: 0.3, ease: 'back.out(2.2)', onUpdate: function () { drawDx(dxAt(state.u)); } }, '-=0.05');
+  gsap.timeline({ delay: 0.15 })
+    .to(settle, { v: 0, duration: 0.3, ease: 'back.out(2)', onUpdate: frame })
+    .to(state, { k: 1, duration: 2.1, ease: 'power1.inOut', onUpdate: frame }, 0.1)
+    .to(loops, { strokeDashoffset: 0, duration: 0.35, ease: 'power1.inOut', stagger: 0.12 }, '+=0.05')
+    .to(missT || {}, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' }, '-=0.1');
 
-  gsap.to(state, {
-    u: 1, ease: 'none', onUpdate: render,
-    scrollTrigger: { trigger: root, start: 'top top', end: '+=240%', pin: true, scrub: 0.6, invalidateOnRefresh: true },
-  });
-
-  // Pointer parallax on the individual `translate` property, so the CSS tilt stays untouched.
-  var par = { k: 0 };
-  function applyPar() { plane.style.translate = (par.k * -5).toFixed(2) + 'px 0'; shadow.style.translate = (par.k * 3).toFixed(2) + 'px 0'; }
-  addEventListener('pointermove', function (e) {
-    gsap.to(par, { k: (e.clientX / innerWidth - 0.5) * 2, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: applyPar });
-  }, { passive: true });
-
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(); ScrollTrigger.refresh(); });
+  // Semi-3D: the sheet lies tilted, and flattens as it comes up the page.
+  var tilt = { a: 9 };
+  function setTilt() {
+    plane.style.transform = 'rotateX(' + tilt.a.toFixed(2) + 'deg)';
+    shadow.style.transform = 'rotateX(' + tilt.a.toFixed(2) + 'deg) translateY(' + (6 + tilt.a).toFixed(1) + 'px)';
+  }
+  setTilt();
+  gsap.to(tilt, { a: 2, ease: 'none', onUpdate: setTilt, scrollTrigger: { trigger: inst, start: 'top 75%', end: 'top 15%', scrub: 0.6 } });
 
   var rt;
   addEventListener('resize', function () {
     clearTimeout(rt);
     rt = setTimeout(function () {
-      if (innerWidth < 768 || innerHeight < 620 || innerHeight > innerWidth) { location.reload(); return; }
-      fit(); ScrollTrigger.refresh();
+      if (innerWidth < 768) { location.reload(); return; }
+      measure(); frame(); ScrollTrigger.refresh();
     }, 180);
   });
 })();

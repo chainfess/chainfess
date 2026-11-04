@@ -60,14 +60,4 @@
     }).catch(function () {});
   }
 
-  // Phone strip: open on the first finding, so the circle is what shows first.
-  var rec = $('.rec');
-  if (rec && !document.documentElement.classList.contains('m') && rec.scrollWidth > rec.clientWidth + 8) {
-    var mk = $('.mk', rec);
-    if (mk) {
-      var s = parseFloat(getComputedStyle(rec).getPropertyValue('--s')) || 1;
-      var left = parseFloat(mk.getAttribute('data-at')) * s - rec.clientWidth * 0.42;
-      rec.scrollLeft = Math.max(0, left);
-    }
-  }
 })();
