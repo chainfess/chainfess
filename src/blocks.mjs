@@ -21,11 +21,14 @@ export function createHeaderReader(rpc, cache = new Map()) {
     const need = [...new Set(ns)].filter((n) => !cache.has(n));
     if (need.length) {
       const res = await rpc.batch(need.map((n) => ['eth_getBlockByNumber', [hex(n), false]]), { size: 8 });
-      need.forEach((n, i) => {
-        if (!res[i]) throw new PrunedError(oldest === Infinity ? 'none' : oldest);
+      for (let i = 0; i < need.length; i++) {
+        const n = need[i];
+        // One behind-the-load-balancer node can answer null once; two nulls mean the block is not served.
+        const blk = res[i] || await rpc.call('eth_getBlockByNumber', [hex(n), false]);
+        if (!blk) throw new PrunedError(oldest === Infinity ? 'none' : oldest);
         oldest = Math.min(oldest, n);
-        cache.set(n, Number(res[i].timestamp));
-      });
+        cache.set(n, Number(blk.timestamp));
+      }
     }
     return ns.map((n) => cache.get(n));
   }
@@ -90,14 +93,14 @@ async function firstAtOrAfter(reader, t, latest, latestTs, { hintLo = null, hint
 
 /**
  * tStartMs/tEndMs: session span in ms. Returns inclusive blocks and notes.
- * margins:false means the times were given explicitly by --from/--to.
+ * Margins are 0 for times given explicitly by --from/--to.
  */
-export async function mapRange({ rpc, tStartMs, tEndMs, latest, latestTs, cache, margins = true }) {
+export async function mapRange({ rpc, tStartMs, tEndMs, latest, latestTs, cache, marginStart = MARGIN_START, marginEnd = MARGIN_END }) {
   const reader = createHeaderReader(rpc, cache);
   reader.cache.set(latest, latestTs);
   const notes = [];
-  const a = Math.ceil(tStartMs / 1000 - (margins ? MARGIN_START : 0));
-  const b = Math.floor(tEndMs / 1000 + (margins ? MARGIN_END : 0));
+  const a = Math.ceil(tStartMs / 1000 - marginStart);
+  const b = Math.floor(tEndMs / 1000 + marginEnd);
   let startBlock = await firstAtOrAfter(reader, a, latest, latestTs);
   if (startBlock === null) {
     notes.push('session starts after the latest block; clock ahead');

@@ -3,7 +3,7 @@ import { existsSync, statSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { createRpc, DEFAULT_RPC, FALLBACK_RPC, RpcUnavailableError, safeUrl } from './rpc.mjs';
 import { runLedger, enrichTxs, ScanCapError, DEFAULT_MAX_SCAN_BLOCKS } from './ledger.mjs';
-import { mapRange, PrunedError } from './blocks.mjs';
+import { mapRange, MARGIN_END, MARGIN_START } from './blocks.mjs';
 import { findProjectDir, newestLog, overlappingLogs, parseAll } from './parse.mjs';
 import { classify, dumpCalls, mentionFlag, partialMatch, STATUS } from './classify.mjs';
 import { addressOfKey } from './keccak.mjs';
@@ -168,7 +168,7 @@ export async function runAudit(opts) {
     const effectiveEnd = tEndMs ?? tStartMs;
     const mapped = await mapRange({
       rpc, tStartMs: effectiveStart, tEndMs: effectiveEnd, latest, latestTs, cache: headers,
-      margins: fromT === null && toT === null,
+      marginStart: fromT === null ? MARGIN_START : 0, marginEnd: toT === null ? MARGIN_END : 0,
     });
     if (startBlock === null) startBlock = mapped.startBlock;
     if (endBlock === null) endBlock = mapped.endBlock;
