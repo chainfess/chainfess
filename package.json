@@ -1,0 +1,13 @@
+{
+  "name": "chainfess",
+  "version": "0.1.0",
+  "description": "Compares a coding agent's session log with what its wallet did on chain and lists every transaction the log does not account for.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "chainfess": "bin/chainfess.mjs" },
+  "engines": { "node": ">=20" },
+  "files": ["bin", "src", "fixtures/demo", "README.md", "CHANGELOG.md", "LICENSE"],
+  "scripts": { "test": "node test/run.mjs" },
+  "keywords": ["robinhood-chain", "claude-code", "agent", "audit", "nonce", "evm", "cli"],
+  "dependencies": {}
+}
