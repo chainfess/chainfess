@@ -29,7 +29,7 @@ fi
 # 3. rsync project (CONTRACTS excludes) ; state dirs and dist are protected
 DEFAULT_TOKEN=""
 if [ ! -f web/token.json ]; then
-  DEFAULT_TOKEN=$(mktemp -d); printf '{ "symbol": "CFESS", "ca": "0x0000000000000000000000000000000000000000", "launched": false,\n  "launchDate": "2026-11-06", "teamWallet": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",\n  "burnAmount": "0", "tokenAddress": "", "taxBps": null }\n' > "$DEFAULT_TOKEN/token.json"
+  DEFAULT_TOKEN=$(mktemp -d); printf '{ "symbol": "CFESS", "ca": "0x0000000000000000000000000000000000000000", "launched": false,\n  "launchDate": "2026-11-06", "teamWallet": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",\n  "burnAmount": "0", "tokenAddress": "", "taxBps": 200 }\n' > "$DEFAULT_TOKEN/token.json"
 fi
 EXCLUDES=(--exclude 'wallet*' --exclude 'WALLETS*' --exclude '.env*' --exclude '.npmrc' --exclude '.git' --exclude 'BRIEF*' --exclude 'STATUS*' --exclude 'RISET*' --exclude 'CONTRACTS.md' --exclude 'SPIKE.md' --exclude 'MEDIA-STATUS*' --exclude 'marketing/'
           --exclude '/state' --exclude '/state-staging' --exclude '/web/dist' --exclude '/web/token.json' --exclude 'node_modules' --exclude '*.db*' --exclude '.DS_Store' --exclude '.deploy-host' --exclude '/test' --exclude '/web/node_modules')
