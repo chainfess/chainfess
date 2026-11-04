@@ -136,7 +136,7 @@ export function landing({ site, token, json, isDemo, css }) {
       <ul class="tx-list">${ordered.map((t) => `<li class="tx ${toneOf(t)}"><span class="tx-s">${esc(STATUS_WORD[t.status] || t.status)}</span><span class="tx-w">${esc(plainSource(t))}</span><code class="tx-h">${esc(shortHash(t.hash))}</code><span class="tx-t">${esc(utcTime(t.time))}</span></li>`).join('')}</ul>
       <p class="sheet-foot"><a class="btn btn-2" href="/report/sample">Open the full report</a></p>
     </div>
-    <p class="after-card">Reports show hashes, addresses, values, the command pattern name, the source kind and a line reference. Never command text, never secrets.</p>
+    <p class="after-card">Reports show hashes, addresses, values, the tool pattern name, the source kind and a line reference. Never command text, never secrets.</p>
   </div></section>`;
 
   const outcomes = [
@@ -333,7 +333,7 @@ export function docs({ site, css, publicKey, token }) {
     <section id="privacy"><h2>Privacy</h2>
       <p><code>audit</code> and <code>demo</code> run on your machine. The log never leaves it. <code>audit</code>'s only network calls are JSON-RPC reads with block numbers, values the log labels as tx hashes, and your wallet address. A 32-byte value with no such label, or with a key word beside it, is never sent. Only the optional <code>sign</code> contacts our server: it sends the wallets, the block range, a hash of the log, and only hashes of transactions confirmed on chain from a registered wallet; never the log.</p>
       <p>The footer of a report counts both kinds of 32-byte value: "looked up, not a tx" (labelled as a hash, but not a transaction on this chain) and "not looked up, stays local" (no label, or a key word beside it). Local values are still matched against the wallet's transactions found by the scan, so your own transaction stays Accounted; the scan may just be longer.</p>
-      <p>Reports show hashes, addresses, values, the command pattern name, the source kind and a line reference. Never command text, never secrets.</p>
+      <p>Reports show hashes, addresses, values, the tool pattern name, the source kind and a line reference. Never command text, never secrets.</p>
     </section>
     <section id="hook"><h2>Hook</h2>
       <p>Optional: <code>${c} hook install --wallet 0x…</code> adds a SessionEnd hook that audits automatically. <code>hook uninstall</code> removes it and <code>hook status</code> shows it.</p>
@@ -407,7 +407,7 @@ export function llms({ site, token, isDemo }) {
     '- Four outcomes, deterministic, no LLM: Accounted · Partial · Unaccounted · Foreign signer.',
     '- Unaccounted means "not in this log". A human, a cron job or another session on the same wallet produces the same line. Chainfess does not say who sent it.',
     "- The wallet's nonce says how many transactions it has ever sent. The report shows how many of them this log explains.",
-    '- Reports show hashes, addresses, values, the command pattern name, the source kind and a line reference. Never command text, never secrets.',
+    '- Reports show hashes, addresses, values, the tool pattern name, the source kind and a line reference. Never command text, never secrets.',
     `- Full table: ${SITE}/docs#rules`, '',
     '## Privacy',
     "- `audit` and `demo` run on your machine. The log never leaves it. `audit`'s only network calls are JSON-RPC reads with block numbers, values the log labels as tx hashes, and your wallet address. A 32-byte value with no such label, or with a key word beside it, is never sent. Only the optional `sign` contacts our server: it sends the wallets, the block range, a hash of the log, and only hashes of transactions confirmed on chain from a registered wallet; never the log.", '',
