@@ -173,7 +173,7 @@ export function landing({ site, token, json, isDemo, css }) {
   ];
   const faq = `<section class="sec s-paper" id="faq"><div class="wrap two">
     <div><h2>Questions</h2></div>
-    <div class="faq">${qa.map(([q, a]) => `<details><summary>${esc(q)}</summary>${a}</details>`).join('')}</div>
+    <div class="faq">${qa.map(([q, a], i) => `<details${i ? '' : ' open'}><summary>${esc(q)}</summary>${a}</details>`).join('')}</div>
   </div></section>`;
 
   const finalCta = `<section class="sec s-blue" id="start"><div class="wrap final">

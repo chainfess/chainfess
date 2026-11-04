@@ -19,7 +19,7 @@ export function stripEvents(json) {
   const ownStatus = new Set(['accounted', 'partial', 'unaccounted']);
   const ev = (json.txs || []).filter((t) => ownStatus.has(t.status) && t.block != null).sort((a, b) => a.block - b.block).slice(0, 8);
   const n = ev.length;
-  return ev.map((t, i) => ({ t, f: +(0.12 + ((i + 0.5) / Math.max(n, 1)) * 0.6).toFixed(4), logged: t.status !== 'unaccounted' }));
+  return ev.map((t, i) => ({ t, f: +(0.16 + ((i + 0.5) / Math.max(n, 1)) * 0.58).toFixed(4), logged: t.status !== 'unaccounted' }));
 }
 
 function trace(evs, pen) {
@@ -52,7 +52,7 @@ export function renderStrip(json) {
   const svg = (pen, cls) => `<svg class="tr-svg" viewBox="0 0 2000 1000" preserveAspectRatio="none" aria-hidden="true"><path class="tr ${cls}" d="${toD(trace(evs, pen))}"/></svg>`;
   const clip = (pen, cls) => `<div class="clip" aria-hidden="true"><div class="feed feed-t">${svg(pen, cls)}</div></div>`;
 
-  const marks = miss.map((e, i) => `<svg class="loop" style="left:${(e.f * 100).toFixed(2)}%" viewBox="0 0 80 120" aria-hidden="true"><path class="gp" pathLength="1" d="${pencilLoop(e.f * 1000 + i)}"/></svg>`).join('');
+  const marks = miss.map((e, i) => `<svg class="loop" style="left:${(e.f * 100).toFixed(2)}%" viewBox="0 0 80 120" preserveAspectRatio="none" aria-hidden="true"><path class="gp" pathLength="1" d="${pencilLoop(e.f * 1000 + i)}"/></svg>`).join('');
   const label = first ? `<div class="miss" style="left:${(first.f * 100).toFixed(2)}%"><span class="miss-t">Not in this log</span><i class="miss-l" aria-hidden="true"></i></div>` : '';
 
   const data = {

@@ -267,6 +267,7 @@ html.m .gp{stroke-dasharray:1;stroke-dashoffset:0}
 
 /* Tablet */
 @media (max-width:1023px){
+  h1{font-size:7vw}
   .inst{--h:360px;--hw:88px;--arm:104px;--L:180px;--ar:12px}
   .two{grid-template-columns:minmax(0,1fr)}
   .outc,.limits{grid-template-columns:minmax(0,1fr)}
@@ -282,6 +283,7 @@ html.m .gp{stroke-dasharray:1;stroke-dashoffset:0}
 }
 /* Phone: no tilt, no GSAP, same final frame */
 @media (max-width:767px){
+  h1{font-size:10.6vw}
   .sm-hide{display:none}
   .inst{--h:340px;--hw:40px;--arm:50px;--L:84px;--ar:6px;perspective:none}
   .roller{width:24px;right:calc(var(--hw) - 24px)}
@@ -295,7 +297,7 @@ html.m .gp{stroke-dasharray:1;stroke-dashoffset:0}
   .row-l{font-size:16px;left:6px}
   .row-chain{top:calc(50% + 2px)}
   .loop{width:calc(var(--h)*.2)}
-  .miss-t{font-size:18px}
+  .miss-t{font-size:17px;transform:translateX(-14px)}
   .btn{flex:1 1 100%}
   .cmd-hero{flex:1 1 100%}
   .cmd-hero code{font-size:15px;padding:12px}
