@@ -147,7 +147,7 @@ html.m .rec-in{position:absolute;right:0;bottom:0;margin:0;perspective:2400px;pe
 html.m .plane{top:auto;bottom:0;right:0;left:auto;overflow:visible;transform:scale(var(--s)) rotateX(12deg) rotateZ(-.9deg);transform-origin:100% 100%;transform-style:preserve-3d}
 html.m .plane-shadow{display:block;right:0;left:auto;top:auto;bottom:0;transform:scale(var(--s)) rotateX(12deg) rotateZ(-.9deg) translateY(12px);transform-origin:100% 100%}
 html.m .plane-shadow::before{content:"";position:absolute;left:-3000px;right:0;top:34px;height:466px;background:var(--ink);opacity:.05}
-html.m .mv,html.m .arm,html.m .arm-sh{will-change:transform}
+
 html.m .face{display:block;position:absolute;left:1332px;width:520px;top:500px;height:110px;background:#8C9399;border:1px solid var(--ink);transform-origin:50% 0;transform:rotateX(-90deg)}
 html.m .rec-in{visibility:hidden}
 html.m-ready .rec-in{visibility:visible}
