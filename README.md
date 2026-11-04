@@ -61,7 +61,7 @@ No balance deltas: the free RPC refuses historical balances. A planned scan over
 
 ## Signed report
 
-Burn `BURN_AMOUNT $CFESS` from the audited wallet, run `npx chainfess sign --burn-tx 0x…`, get an ed25519-signed statement of chain facts that our server re-checked itself. The server never sees your log, so which hashes you listed is your claim, not ours. `npx chainfess verify <statement.json>` checks it offline.
+burn 0.01% of supply in $CFESS (exact amount set from the contract at launch) from the audited wallet, run `npx chainfess sign --burn-tx 0x…`, get an ed25519-signed statement of chain facts that our server re-checked itself. The server never sees your log, so which hashes you listed is your claim, not ours. `npx chainfess verify <statement.json>` checks it offline.
 
 $CFESS launches 6 Nov 2026 (UTC date). No CA exists yet; any $CFESS you see before it is posted on chainfess.pro and on @chainfesspro is not ours. The signed-report service switches on with the CA. The free CLI never needs the coin.
 
