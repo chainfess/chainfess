@@ -100,7 +100,7 @@ function annotations(json, L) {
     <path class="cl" d="M${x} ${G.gridTop + 2}V${G.gridBot}"/>
     ${T(x + 8, 76, 'lb up', a)}${T(x + 8, 90, 'lb mu', b)}</g>`;
   out.push(flag(L.xS, 'Session start', `${utcHM(s.tStart)} UTC`, L.xS));
-  out.push(flag(L.xE, 'Session end', `${utcHM(s.tEnd)} UTC`, L.xE));
+  out.push(flag(L.xE, 'Session end', `${utcHM(s.tEnd)} UTC${L.hidden ? `  ·  +${L.hidden} more in the report` : ''}`, L.xE));
 
   let prevEv = null;
   for (const e of L.ev) {
@@ -125,10 +125,15 @@ function annotations(json, L) {
         if (!hasLog) {
           group += `<path class="tw rd" d="M${x} ${G.baseLog + 7}V${cy - ry - 3}"/><circle class="ring" cx="${x}" cy="${G.baseLog}" r="6"/>`;
         }
-        const lx = x + 46, ly = 394, lw = Math.max(...big.map((b) => b.length)) * 9.9 + 8;
-        group += `<path class="ld rd" d="M${x + 27} ${cy + 49}L${lx} ${ly}H${lx + lw}"/>`;
-        big.forEach((b, i) => { group += T(lx + 2, ly - 5 - (big.length - 1 - i) * 16, 'fd', b); });
-        group += T(lx + 2, ly + 15, 'lb rt', `nonce ${t.nonce} · ${utcTime(t.time)}`);
+        // Callout sits right of the circle, or left of it when the next spike is also a finding and would run into it.
+        const meta = `nonce ${t.nonce} · ${utcTime(t.time)}${t.valueWei && t.valueWei !== '0' ? ` · ${t.valueEth} ETH` : ''}`;
+        const lw = Math.max(...big.map((b) => b.length * 9.9), meta.length * 7.7) + 8;
+        const next = L.ev[L.ev.indexOf(e) + 1];
+        const left = !!next?.spec.mark && next.x - x < lw + 100;
+        const ly = 394, sign = left ? -1 : 1, lx = x + sign * 46, tx = lx + sign * 2, anchor = left ? ' text-anchor="end"' : '';
+        group += `<path class="ld rd" d="M${x + sign * 27} ${cy + 49}L${lx} ${ly}H${lx + sign * lw}"/>`;
+        big.forEach((b, i) => { group += `<text x="${tx}" y="${ly - 5 - (big.length - 1 - i) * 16}" class="fd"${anchor}>${esc(b)}</text>`; });
+        group += `<text x="${tx}" y="${ly + 15}" class="lb rt"${anchor}>${esc(meta)}</text>`;
         out.push(`<g class="an" data-pen="chain" data-at="${x}">${group}</g>`);
         out.push(`<g class="mk" data-at="${x}" data-tone="red"><path class="gp" pathLength="1" d="${pencilLoop(x + 3, cy, rx, ry, x)}"/><path class="gp2" d="${pencilLoop(x + 3, cy, rx, ry, x)}"/></g>`);
       } else {
@@ -201,7 +206,9 @@ function housing(json) {
   const plate = `<rect x="${X + 16}" y="214" width="86" height="104" fill="#EEF1E8" stroke="#141616"/>${screw(X + 22, 220)}${screw(X + 96, 220)}${screw(X + 22, 312)}${screw(X + 96, 312)}
    <text x="${X + 59}" y="240" text-anchor="middle" class="lb sm">LOG</text><text x="${X + 59}" y="282" text-anchor="middle" class="lb sm">CHAIN</text>`;
   const caps = `<rect x="${px - 3}" y="0" width="${W + 6}" height="16" fill="#8C9399" stroke="#141616"/><rect x="${px - 3}" y="${G.H - 16}" width="${W + 6}" height="16" fill="#8C9399" stroke="#141616"/>${screw(px + 23, 8)}${screw(px + 23, G.H - 8)}<path d="M${px} 16V${G.H - 16}M${px + W} 16V${G.H - 16}" stroke="#141616" stroke-width=".8"/>`;
-  return `<svg class="hs" width="${G.W + 300 - px + 20}" height="${G.H}" viewBox="${px - 20} 0 ${G.W + 300 - px + 20} ${G.H}" style="left:${px - 20}px" aria-hidden="true">${shadowOnPaper}${platen}${caps}${body}${screw(X + 30, 30)}${screw(X + 30, G.H - 30)}${plate}</svg>`;
+  return `<svg class="hs" width="${G.W + 300 - px + 20}" height="${G.H}" viewBox="${px - 20} 0 ${G.W + 300 - px + 20} ${G.H}" style="left:${px - 20}px" aria-hidden="true">${shadowOnPaper}${platen}${caps}${body}${screw(X + 30, 30)}${screw(X + 30, G.H - 30)}${plate}
+    <text transform="translate(${X + 62} 168) rotate(-90)" class="eng">CHAINFESS</text>
+    <path d="${[0, 1, 2, 3, 4, 5].map((i) => `M${X + 50} ${384 + i * 11}h44`).join('')}" stroke="#141616" stroke-width="2.4" opacity=".55"/><path d="${[0, 1, 2, 3, 4, 5].map((i) => `M${X + 50} ${386 + i * 11}h44`).join('')}" stroke="#F5F7F0" stroke-width="1"/></svg>`;
 }
 
 export function renderRecorder(json, { isDemo }) {
@@ -219,7 +226,7 @@ export function renderRecorder(json, { isDemo }) {
   const svgLayer = (cls, inner) => `<svg class="ly ${cls}" width="${w}" height="${G.H}" viewBox="${xMin} 0 ${w} ${G.H}" style="left:${xMin}px" aria-hidden="true">${inner}</svg>`;
   const clip = (pen, tip, inner) => `<div class="clip" data-clip="${pen}" style="width:${tip + 4000}px;left:-4000px"><div class="clip-in" style="left:4000px">${inner}</div></div>`;
 
-  const finding = L.ev.find((e) => e.spec.mark);
+  const finding = L.ev.find((e) => e.t.status === 'unaccounted') || L.ev.find((e) => e.spec.mark);
   const firstTwin = L.ev.find((e) => e.spec.log && e.spec.chain) || L.ev.find((e) => e.spec.chain) || L.ev[0];
   const firstLog = L.ev.find((e) => e.spec.log) || L.ev[0];
   const dxFor = (x, tip, off) => tip - off - x;

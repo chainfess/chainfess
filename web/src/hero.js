@@ -146,11 +146,13 @@
     gsap.to(par, { k: (e.clientX / innerWidth - 0.5) * 2, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: applyPar });
   }, { passive: true });
 
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(); ScrollTrigger.refresh(); });
+
   var rt;
   addEventListener('resize', function () {
     clearTimeout(rt);
     rt = setTimeout(function () {
-      if (innerWidth < 768 || innerHeight < 620) { location.reload(); return; }
+      if (innerWidth < 768 || innerHeight < 620 || innerHeight > innerWidth) { location.reload(); return; }
       fit(); ScrollTrigger.refresh();
     }, 180);
   });

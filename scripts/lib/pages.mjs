@@ -8,7 +8,7 @@ const X_URL = 'https://x.com/chainfesspro';
 const GH_URL = 'https://github.com/chainfess/chainfess';
 const NPM_URL = 'https://www.npmjs.com/package/chainfess';
 
-const copyBox = (cmd, label = 'Copy') => `<div class="cmd"><code>${esc(cmd)}</code><button type="button" class="cp" data-copy="${esc(cmd)}">${label}</button></div>`;
+const copyBox = (cmd, label = 'Copy') => `<div class="cmd"><code>${esc(cmd).replace(/(--[\w-]+ \S+)/g, '<span class="nb">$1</span>')}</code><button type="button" class="cp" data-copy="${esc(cmd)}">${label}</button></div>`;
 
 // CLI name in running text: `npx chainfess …` only once the package is public.
 export const cli = (site) => (site.npmLive ? 'npx chainfess' : 'chainfess');
@@ -89,7 +89,7 @@ export function landing({ site, token, json, isDemo, css }) {
     </div>
     <aside class="tb" aria-label="Instrument data">
       ${tryRow}
-      <div class="tb-r"><div class="tb-k">Sample</div><div class="tb-v mono-v">${esc(line)}${isDemo ? '<div class="tb-note">DEMO — fixture data</div>' : ''}</div></div>
+      <div class="tb-r"><div class="tb-k">Sample</div><div class="tb-v mono-v">${esc(line)}${isDemo ? '<div class="tb-note">DEMO — fixture data</div>' : ''}${site.npmLive ? '<a class="tb-link" href="/report/sample">Sample report <span aria-hidden="true">→</span></a>' : ''}</div></div>
       <div class="tb-r"><div class="tb-k">Block</div><div class="tb-v mono-v"><span data-block class="blk">—</span> <span class="tb-dim">chain 4663, live</span></div></div>
       <div class="tb-r tb-ca"><div class="tb-k">CA</div><div class="tb-v">${caSlot(token, { compact: true })}</div></div>
     </aside>
@@ -123,6 +123,7 @@ export function landing({ site, token, json, isDemo, css }) {
     <p class="big">The wallet's nonce says how many transactions it has ever sent. The report shows how many of them this log explains.</p>
     ${ledgerCells}
     <p class="nl-foot">${esc(line)}${isDemo ? ' <em>DEMO — fixture data</em>' : ''} <a href="/report/sample">Sample report →</a></p>
+    ${isDemo ? '' : '<p class="note">Sample report: a real session run by the Chainfess team on mainnet.</p>'}
   </div></section>`;
 
   const localSection = `<section class="sec" id="local"><div class="sec-h"><span class="fig">${fig(4)}</span><h2>What leaves the machine</h2></div><div class="sec-b two">
@@ -139,7 +140,7 @@ export function landing({ site, token, json, isDemo, css }) {
     <p class="note">The free CLI never needs the coin. <a href="/token">Token page →</a></p>
   </div></section>`;
 
-  const motionBoot = `<script>(function(){var d=document.documentElement,w=innerWidth,h=innerHeight;d.classList.add('js');if(w<768||h<620||matchMedia('(prefers-reduced-motion: reduce)').matches)return;d.classList.add('m');window.__recBoot=1;var s=['/vendor/gsap.min.js','/vendor/ScrollTrigger.min.js','/hero.js'],t=setTimeout(function(){d.classList.remove('m')},4000);window.__recReady=function(){clearTimeout(t)};s.forEach(function(u){var e=document.createElement('script');e.src=u;e.async=false;e.onerror=function(){clearTimeout(t);d.classList.remove('m')};document.head.appendChild(e)})})()</script>`;
+  const motionBoot = `<script>(function(){var d=document.documentElement,w=innerWidth,h=innerHeight;d.classList.add('js');if(w<768||h<620||h>w||matchMedia('(prefers-reduced-motion: reduce)').matches)return;d.classList.add('m');window.__recBoot=1;var s=['/vendor/gsap.min.js','/vendor/ScrollTrigger.min.js','/hero.js'],t=setTimeout(function(){d.classList.remove('m')},4000);window.__recReady=function(){clearTimeout(t)};s.forEach(function(u){var e=document.createElement('script');e.src=u;e.async=false;e.onerror=function(){clearTimeout(t);d.classList.remove('m')};document.head.appendChild(e)})})()</script>`;
 
   return shell({
     title: 'Chainfess',
@@ -173,7 +174,7 @@ export function report({ site, json, isDemo, css }) {
     ${list.map((t) => `<article class="rp-r"><div class="rp-m"><span class="rp-st">${esc(LABEL[t.status] || t.status)}</span><span>nonce ${t.nonce ?? '—'}</span><span>block ${num(t.block)}</span><span>${utcTime(t.time)}</span><span>${esc(t.valueEth)} ETH</span>${t.reverted ? '<span>reverted</span>' : ''}${t.contractCreation ? `<span>contract creation ${esc(shortAddr(t.createdAddress))}</span>` : ''}</div>
       <div class="rp-h"><code class="hash">${esc(t.hash)}</code></div>
       <div class="rp-d"><span>from <code>${esc(t.from)}</code></span><span>to <code>${esc(t.to ?? 'contract creation')}</code>${t.toLabel ? ` (${esc(t.toLabel)})` : ''}</span>${t.source?.kind ? `<span>source ${esc(t.source.kind)}${t.source.line ? ` line ${t.source.line}` : ''}${t.pattern ? ` (${esc(t.pattern)})` : ''}</span>` : ''}<span>mentioned: ${esc(t.mentioned || 'none')}</span></div>
-      ${copyBox(`cast tx ${t.hash} --rpc-url ${RPC}`)}</article>`).join('')}</section>` : '';
+      ${isDemo ? '' : copyBox(`cast tx ${t.hash} --rpc-url ${RPC}`)}</article>`).join('')}</section>` : '';
   const logName = (json.logs?.main?.[0] || '').split(/[\\/]/).pop().replace(/[^\w.\-]/g, '');
   const extras = [json.logs?.subagents ? `+${json.logs.subagents} subagents` : '', json.logs?.broadcast ? `${json.logs.broadcast} broadcast file` : ''].filter(Boolean).join(', ');
   const realNote = `Real session run by the Chainfess team on Robinhood Chain, ${utcDate(s.tStart)}. Wallet ${shortAddr(w?.address)} is the team wallet. An agent sent two 0-ETH self-transfers. A third 0-ETH self-transfer was sent from a second terminal, outside the agent session, while the session was open: that is the line marked "not in this log". It was done on purpose to show what a finding looks like.`;

@@ -24,6 +24,10 @@ export function nonceLine(w) {
   if (!w) return '';
   if (w.neverSent) return 'Nonce 0 · this wallet has never sent a transaction.';
   const parts = [`Nonce ${w.nonce}`, `${w.inLog} in the log`, `${w.uIn} not`];
-  if (w.uOut) parts.push(`${w.uOut} after the session`);
+  // CORE splits uOut into uBefore/uAfter; older JSON only has uOut, which the brief reads as "after".
+  const before = w.uBefore ?? 0;
+  const after = w.uAfter ?? (w.uBefore == null ? w.uOut : 0);
+  if (before) parts.push(`${before} before the session`);
+  if (after) parts.push(`${after} after the session`);
   return parts.join(' · ');
 }
