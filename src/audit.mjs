@@ -193,7 +193,7 @@ export async function runAudit(opts) {
   const candidates = lookupCandidates(sink, wallets);
   const onPlan = async ({ plannedBlocks, gaps }) => {
     const estimate = Math.ceil(plannedBlocks / SCAN_BLOCKS_PER_SEC);
-    progress(`scan plan: ${plannedBlocks.toLocaleString('en-US')} blocks in ${gaps.length} gap${gaps.length === 1 ? '' : 's'}, about ${formatDuration(estimate)} at ${RATE_SOURCE}`);
+    progress(`scan plan: ${plannedBlocks.toLocaleString('en-US')} blocks in ${gaps.length} gap${gaps.length === 1 ? "" : "s"}, up to about ${formatDuration(estimate)} at ${RATE_SOURCE}`);
     if (plannedBlocks > maxScanBlocks) return; // the ledger refuses with the numbers
     if (estimate > CONFIRM_ABOVE_SEC && !opts.yes) {
       const ok = opts.confirm ? await opts.confirm(`Estimated scan is over 10 minutes (about ${formatDuration(estimate)}). Continue?`) : false;

@@ -251,9 +251,11 @@ export function judgeText(sink, text, { tool = null, isOutput = false, atStart =
     const before = text.slice(a, m.index);
     const after = text.slice(endIdx, b);
     const object = enclosingObject(text, m.index);
-    if (KEY_WORDS_RE.test(before) || KEY_WORDS_RE.test(after) || ENV_ASSIGN_RE.test(before) || (object && KEY_WORDS_RE.test(object))) {
+    // A value introduced as a key is vetoed for the whole log. A key word merely elsewhere on the line or in the
+    // object only stops this occurrence from vouching: prose like "the token deploy tx 0x…" must not erase a labelled hash.
+    if (ENV_ASSIGN_RE.test(before) || KEY_CONTEXT_RE.test(before.slice(-64))) {
       sink.keyLike.add(value);
-    } else {
+    } else if (!KEY_WORDS_RE.test(before) && !KEY_WORDS_RE.test(after) && !(object && KEY_WORDS_RE.test(object))) {
       // A line cut by a chunk edge may hold a key word in the part not seen yet: the next slice decides.
       const cut = (a === 0 && !atStart) || (touchesEnd && !atEnd);
       if (!cut) {
