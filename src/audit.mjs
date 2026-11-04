@@ -12,6 +12,7 @@ import { buildReport } from './report.mjs';
 export const CHAIN_ID = 4663;
 // Sustained rate of the public RPC, measured 05-11-2026 over 30,000 full blocks. The first ~7,500 blocks run near 170/s.
 export const SCAN_BLOCKS_PER_SEC = 60;
+const RATE_SOURCE = `${SCAN_BLOCKS_PER_SEC} blocks/s, measured on 5 Nov 2026 over 30,000 blocks on the public RPC`;
 export const BLOCKS_PER_HOUR = 35000;
 export const MAX_LOOKUPS = 20000;
 const CONFIRM_ABOVE_SEC = 600;
@@ -192,7 +193,7 @@ export async function runAudit(opts) {
   const candidates = lookupCandidates(sink, wallets);
   const onPlan = async ({ plannedBlocks, gaps }) => {
     const estimate = Math.ceil(plannedBlocks / SCAN_BLOCKS_PER_SEC);
-    progress(`scan plan: ${plannedBlocks.toLocaleString('en-US')} blocks in ${gaps.length} gap${gaps.length === 1 ? '' : 's'}, about ${formatDuration(estimate)} at the public RPC's sustained ${SCAN_BLOCKS_PER_SEC} blocks/s`);
+    progress(`scan plan: ${plannedBlocks.toLocaleString('en-US')} blocks in ${gaps.length} gap${gaps.length === 1 ? '' : 's'}, about ${formatDuration(estimate)} at ${RATE_SOURCE}`);
     if (plannedBlocks > maxScanBlocks) return; // the ledger refuses with the numbers
     if (estimate > CONFIRM_ABOVE_SEC && !opts.yes) {
       const ok = opts.confirm ? await opts.confirm(`Estimated scan is over 10 minutes (about ${formatDuration(estimate)}). Continue?`) : false;
@@ -212,7 +213,7 @@ export async function runAudit(opts) {
   } catch (e) {
     if (e instanceof ScanCapError) {
       const hours = Math.ceil(e.planned / BLOCKS_PER_HOUR);
-      throw new InputError(`refusing: this audit would scan ${e.planned} blocks, over the cap of ${e.cap} (about ${formatDuration(e.planned / SCAN_BLOCKS_PER_SEC)} at the public RPC's sustained ${SCAN_BLOCKS_PER_SEC} blocks/s). To allow it: --max-hours ${hours}. To scan less: --from-block <n> --to-block <n>.`);
+      throw new InputError(`refusing: this audit would scan ${e.planned} blocks, over the cap of ${e.cap} (about ${formatDuration(e.planned / SCAN_BLOCKS_PER_SEC)} at ${RATE_SOURCE}). To allow it: --max-hours ${hours}. To scan less: --from-block <n> --to-block <n>.`);
     }
     throw e;
   }

@@ -23,6 +23,8 @@ Lists every transaction a coding agent's session log does not account for.
       [--from ISO] [--to ISO] [--from-block n] [--to-block n] [--max-hours h]
       [--yes] [--json] [--no-subagents] [--quiet] [--debug]
       Default log: the latest Claude Code session for this directory.
+      --no-subagents skips subagent transcripts only; the main session's saved tool outputs are still read.
+      A 32-byte value goes to the RPC only with a tx-hash label or read command beside it; the rest stays local.
 
   chainfess sign --burn-tx 0x… --wallet 0x… [--log file]… [--server url]
   chainfess verify <statement.json> [--pubkey file]
