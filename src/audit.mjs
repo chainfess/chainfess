@@ -284,7 +284,7 @@ export function summarizeWallet(wallet, ledger, rows, ctx, startBlock, endBlock)
   const inLogNonces = new Set();
   const inRangeNotInLog = new Set();
   for (const r of mine) {
-    const occ = ctx.occurrence(r.tx.hash);
+    const occ = ctx.occurrence(r.tx.hash) || ctx.partial(r.tx.hash);
     if (occ) inLogNonces.add(r.tx.nonce);
     else if (r.tx.block >= startBlock && r.tx.block <= endBlock) inRangeNotInLog.add(r.tx.nonce);
   }
