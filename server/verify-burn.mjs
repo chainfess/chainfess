@@ -31,14 +31,15 @@ export function verifyBurn({ tx, receipt, latest, tokenAddress, burnAmount, wall
   // rule 4
   const token = String(tokenAddress || '').toLowerCase();
   const from = String(tx.from || '').toLowerCase();
-  const transfers = (receipt.logs || []).filter(
+  // Only Transfers from the token, sent by tx.from, to a burn address count. Other Transfers from the
+  // token (e.g. a fee Transfer from a tax-on-transfer token) are ignored.
+  const matching = (receipt.logs || []).filter(
     (l) => String(l.address || '').toLowerCase() === token && Array.isArray(l.topics) && l.topics.length === 3 &&
-      String(l.topics[0]).toLowerCase() === TRANSFER_TOPIC0,
+      String(l.topics[0]).toLowerCase() === TRANSFER_TOPIC0 &&
+      topicAddr(l.topics[1]) === from && BURN_ADDRESSES.includes(topicAddr(l.topics[2])),
   );
-  if (transfers.length !== 1) return fail(400, 'burn_transfer_not_exactly_one');
-  const t = transfers[0];
-  if (topicAddr(t.topics[1]) !== from) return fail(400, 'burn_transfer_wrong_sender');
-  if (!BURN_ADDRESSES.includes(topicAddr(t.topics[2]))) return fail(400, 'burn_transfer_not_to_burn_address');
+  if (matching.length !== 1) return fail(400, 'burn_transfer_not_exactly_one');
+  const t = matching[0];
   const value = toBig(t.data);
   const need = toBig(burnAmount);
   if (value === null || need === null || need <= 0n) return fail(400, 'burn_amount_invalid');

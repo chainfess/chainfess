@@ -32,9 +32,9 @@ test('verifyBurn rule 4: token address compare is case-insensitive; an unrelated
   const other = transferLog({ token: '0x' + 'bb'.repeat(20) });
   assert.equal(verifyBurn(base(burnFixture({ logs: [other, transferLog()] }), { tokenAddress: TOKEN.toUpperCase().replace('0X', '0x') })).ok, true);
 });
-test('verifyBurn rule 4: transfer to a non-burn address, or from another sender, is rejected', () => {
-  assert.equal(verifyBurn(base(burnFixture({ logs: [transferLog({ to: STRANGER })] }))).error, 'burn_transfer_not_to_burn_address');
-  assert.equal(verifyBurn(base(burnFixture({ logs: [transferLog({ from: WALLET2 })] }))).error, 'burn_transfer_wrong_sender');
+test('verifyBurn rule 4: transfer to a non-burn address, or from another sender, does not count', () => {
+  assert.equal(verifyBurn(base(burnFixture({ logs: [transferLog({ to: STRANGER })] }))).error, 'burn_transfer_not_exactly_one');
+  assert.equal(verifyBurn(base(burnFixture({ logs: [transferLog({ from: WALLET2 })] }))).error, 'burn_transfer_not_exactly_one');
 });
 test('verifyBurn rule 4: amount below burnAmount is rejected with amount_below_required', () => {
   const r = verifyBurn(base(burnFixture({ logs: [transferLog({ value: 999n })] })));
@@ -45,4 +45,20 @@ test('verifyBurn rule 5: burn from a wallet that is not audited is 403', () => {
   const r = verifyBurn(base(f));
   assert.deepEqual([r.status, r.error], [403, 'burn_wallet_not_audited']);
   assert.equal(verifyBurn(base(f, { wallets: [WALLET, STRANGER.toUpperCase().replace('0X', '0x')] })).ok, true);
+});
+
+const FEE = '0x' + 'fe'.repeat(20);
+test('verifyBurn tax token: a fee Transfer to a fee address plus the burn Transfer passes', () => {
+  const logs = [transferLog({ to: FEE, value: 20n }), transferLog({ value: 1000n })];
+  assert.equal(verifyBurn(base(burnFixture({ logs }))).ok, true);
+  assert.equal(verifyBurn(base(burnFixture({ logs: logs.reverse() }))).ok, true);
+});
+test('verifyBurn: two matching burn Transfers are rejected', () => {
+  const r = verifyBurn(base(burnFixture({ logs: [transferLog({ value: 600n }), transferLog({ to: '0x' + '0'.repeat(40), value: 600n })] })));
+  assert.deepEqual([r.status, r.error], [400, 'burn_transfer_not_exactly_one']);
+});
+test('verifyBurn tax token: net burned amount below burnAmount is rejected even if gross left the wallet', () => {
+  const logs = [transferLog({ to: FEE, value: 200n }), transferLog({ value: 980n })];
+  const r = verifyBurn(base(burnFixture({ logs })));
+  assert.deepEqual([r.status, r.error], [400, 'amount_below_required']);
 });
