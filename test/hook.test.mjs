@@ -92,7 +92,7 @@ test('hook status: reports not installed, then the wallets', async () => {
 });
 
 test('hook command: pins npx when the package lives in the npx cache', () => {
-  assert.match(hookCommand([WALLET], '/x/_npx/ab/node_modules/chainfess/bin/chainfess.mjs'), /^npx --yes chainfess@0\.1\.0 hook run/);
+  assert.match(hookCommand([WALLET], '/x/_npx/ab/node_modules/chainfess/bin/chainfess.mjs'), /^npx --yes chainfess@0\.1\.1 hook run/);
   assert.match(hookCommand([WALLET], '/opt/chainfess/bin/chainfess.mjs', '/usr/bin/node'), /^"\/usr\/bin\/node" "\/opt\/chainfess\/bin\/chainfess\.mjs" hook run/);
 });
 

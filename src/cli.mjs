@@ -222,7 +222,7 @@ export async function main(argv, ioOverride = {}) {
       return cmd === undefined ? 2 : 0;
     case '--version':
     case '-v':
-      io.out('0.1.0\n');
+      io.out('0.1.1\n');
       return 0;
     default:
       io.err(`unknown command: ${String(cmd).slice(0, 40)}\n${HELP}`);

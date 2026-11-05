@@ -1,8 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.1.1
 
 - README and `--help` say "no RPC calls" for `demo` instead of "no network": `demo` calls no RPC, but `npx` downloads the package on first run.
+- README says `cast tx` reproduces each line and `cast nonce` prints the live count, which only rises after the audit.
+- `package.json` has a `repository` field.
+- `--version`, the report's `toolVersion` and the hook's `npx` command name 0.1.1.
 
 ## 0.1.0
 

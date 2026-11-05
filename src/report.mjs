@@ -3,7 +3,7 @@ import { toChecksum } from './keccak.mjs';
 import { STATUS } from './classify.mjs';
 import { DEFAULT_RPC } from './rpc.mjs';
 
-export const TOOL_VERSION = '0.1.0';
+export const TOOL_VERSION = '0.1.1';
 const iso = (ms) => (ms === null || ms === undefined ? null : new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z'));
 
 export function weiToEth(wei) {

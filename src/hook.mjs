@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util';
 
 const BIN = fileURLToPath(new URL('../bin/chainfess.mjs', import.meta.url));
 const MARKER = 'chainfess-session-end-hook';
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const STDIN_WAIT_MS = 2000;
 
 function paths(io) {

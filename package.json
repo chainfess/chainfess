@@ -1,8 +1,9 @@
 {
   "name": "chainfess",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Compares a coding agent's session log with what its wallet did on chain and lists every transaction the log does not account for.",
   "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/chainfess/chainfess.git" },
   "type": "module",
   "bin": { "chainfess": "bin/chainfess.mjs" },
   "engines": { "node": ">=20" },
