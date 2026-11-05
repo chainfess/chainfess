@@ -2,7 +2,7 @@
 
 Your agent says X. The chain says Y. Chainfess lists every transaction the log does not account for.
 
-Try it in 10 seconds, no wallet, no network:
+Try it in 10 seconds, no wallet, no RPC calls:
 
 ```
 npx chainfess demo

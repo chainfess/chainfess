@@ -283,7 +283,7 @@ export function docs({ site, css, publicKey, token }) {
     <nav class="toc" aria-label="On this page">${toc.map(([id, t]) => `<a href="#${id}">${t}</a>`).join('')}</nav>
     <div class="doc-body">
     <section id="audit"><h2>Audit</h2>
-      ${site.npmLive ? `<p>The CLI is published to npm as <code>chainfess</code>; commands below apply once installed. Try it in 10 seconds, no wallet, no network: <code>npx chainfess demo</code>.</p>${copyBox('npx chainfess demo')}` : '<p>The npm package is not published yet. These are the commands it provides.</p>'}
+      ${site.npmLive ? `<p>The CLI is published to npm as <code>chainfess</code>; commands below apply once installed. Try it in 10 seconds, no wallet, no RPC calls: <code>npx chainfess demo</code>.</p>${copyBox('npx chainfess demo')}` : '<p>The npm package is not published yet. These are the commands it provides.</p>'}
       <p>Audit a past session: <code>${c} audit --wallet 0x…</code>. Default log = latest Claude Code session for the current directory.</p>
       ${site.npmLive ? copyBox('npx chainfess audit --wallet 0x…') : ''}
       <table class="tbl flags"><caption class="vh">Audit flags</caption><thead><tr><th scope="col">Flag</th><th scope="col">Meaning</th></tr></thead><tbody>${flags.map(([f, m]) => `<tr><td><code>${f}</code></td><td>${m}</td></tr>`).join('')}</tbody></table>
@@ -400,7 +400,7 @@ export function llms({ site, token, isDemo }) {
     '> Your agent says X. The chain says Y. Chainfess lists every transaction the log does not account for.', '',
     '## Commands',
     site.npmLive ? '- The CLI is published to npm as `chainfess`; commands below apply once installed.' : '- The npm package is not published yet. These are the commands it provides.',
-    ...(site.npmLive ? ['- Try it in 10 seconds, no wallet, no network: `npx chainfess demo`.'] : []),
+    ...(site.npmLive ? ['- Try it in 10 seconds, no wallet, no RPC calls: `npx chainfess demo`.'] : []),
     `- Audit a past session: \`${c} audit --wallet 0x…\`. Default log = latest Claude Code session for the current directory.`,
     `- \`${c} verify <statement.json>\`: offline check of a signed statement.`, '',
     '## Rules',

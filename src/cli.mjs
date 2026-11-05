@@ -17,7 +17,7 @@ const HELP = `chainfess: your agent says X, the chain says Y.
 Lists every transaction a coding agent's session log does not account for.
 
   chainfess demo [--json]
-      Bundled fixture, recorded RPC replies, no wallet, no network.
+      Bundled fixture, recorded RPC replies, no wallet, no RPC calls.
 
   chainfess audit --wallet 0x… [--log file]… [--all-sessions] [--rpc url] [--chain-id n]
       [--from ISO] [--to ISO] [--from-block n] [--to-block n] [--max-hours h]
