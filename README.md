@@ -45,7 +45,7 @@ Reports show hashes, addresses, values, the command pattern name, the source kin
 
 ## Verify
 
-Verify the rules yourself: `cast tx <hash>` and `cast nonce <wallet>` reproduce every number. The report footer prints both lines.
+Verify the rules yourself: `cast tx <hash>` reproduces each line. `cast nonce <wallet>` prints the live count, which only rises after the audit. The report footer prints both lines.
 
 ## Scope
 

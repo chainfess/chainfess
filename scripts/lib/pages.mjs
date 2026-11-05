@@ -8,6 +8,13 @@ const X_URL = 'https://x.com/chainfesspro';
 const GH_URL = 'https://github.com/chainfess/chainfess';
 const NPM_URL = 'https://www.npmjs.com/package/chainfess';
 const DEMO_NOTE = 'Demo: fixture data.';
+const EXPLORER = 'https://robinhoodchain.blockscout.com';
+// Team wallet nonces 5 to 7, sent after the sample audit.
+const LATER_TXS = {
+  deploy: '0x9d53908f84c08dd1f632aa31780d46abdacc1771f9db25702d163cb3329dc3c1',
+  fullBurn: '0x7f9c50beef923dc2ca538be078415733d0636a90c813f1db690814dc35419e76',
+  shortBurn: '0xdb22542269e0c49df9066d9235bc38ea1e74f4563be3592f6597f345f5d2e789',
+};
 
 const copyBox = (cmd, cls = '') => `<div class="cmd ${cls}"><code>${esc(cmd).replace(/(--[\w-]+ [^ ]{1,14}(?= |$))/g, '<span class="nb">$1</span>')}</code><button type="button" class="cp" data-copy="${esc(cmd)}">Copy</button></div>`;
 
@@ -75,10 +82,11 @@ function plainSource(t) {
 const toneOf = (t) => (t.finding ? 'bad' : ['partial', 'pending', 'post-session', 'pre-session'].includes(t.status) ? 'warn' : ['observed', 'recent-other'].includes(t.status) ? 'mute' : 'ok');
 const STATUS_WORD = { accounted: 'Accounted', partial: 'Partial', unaccounted: 'Unaccounted', 'foreign-signer': 'Foreign signer', 'pre-session': 'Before session', 'post-session': 'After session', pending: 'Pending', 'recent-other': 'Other wallet', observed: 'Other wallet' };
 
-function plainSummary(w) {
+function plainSummary(w, auditedAt) {
   if (!w) return '';
   if (w.neverSent) return 'This wallet has never sent a transaction.';
-  const s = [`This wallet has sent ${w.nonce} transaction${w.nonce === 1 ? '' : 's'}.`, `${w.inLog} ${w.inLog === 1 ? 'appears' : 'appear'} in this log.`];
+  const lead = auditedAt ? `At audit time, ${utcDate(auditedAt)} ${utcTime(auditedAt)}, this wallet had sent` : 'This wallet has sent';
+  const s = [`${lead} ${w.nonce} transaction${w.nonce === 1 ? '' : 's'}.`, `${w.inLog} ${w.inLog === 1 ? 'appears' : 'appear'} in this log.`];
   if (w.uIn) s.push(`${w.uIn} inside this session ${w.uIn === 1 ? 'does' : 'do'} not.`);
   const before = w.uBefore ?? 0, after = w.uAfter ?? (w.uBefore == null ? w.uOut : 0);
   if (before) s.push(`${before} ${before === 1 ? 'was' : 'were'} sent before it.`);
@@ -118,7 +126,7 @@ export function landing({ site, token, json, isDemo, css }) {
       ? `<p>Audit a past session. Default log = latest Claude Code session for the current directory.</p><code class="code-b">${esc(c)} audit --wallet 0x…</code>`
       : `<p>Audit a past session by giving the CLI your agent's wallet address. Default log = latest Claude Code session for the current directory. The commands are listed in the <a href="/docs#audit">docs</a>.</p>`],
     ['It compares log and chain', `<p><code>audit</code> runs on your machine and reads the chain with JSON-RPC calls. Deterministic, no LLM. The log never leaves your machine.</p>`],
-    ['You get a plain list', `<p>Every transaction the log does not account for, as one line each. <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>`],
+    ['You get a plain list', `<p>Every transaction the log does not account for, as one line each. <code>cast tx &lt;hash&gt;</code> reproduces each line. <code>cast nonce &lt;wallet&gt;</code> prints the live count, which only rises after the audit.</p>`],
   ];
   const how = `<section class="sec s-paper" id="how"><div class="wrap">
     <h2>How it works</h2>
@@ -131,7 +139,7 @@ export function landing({ site, token, json, isDemo, css }) {
   const report = `<section class="sec s-sage" id="report"><div class="wrap">
     <h2>What a report looks like</h2>
     <div class="sheet-card">
-      <p class="rp-sum">${esc(plainSummary(w))}</p>
+      <p class="rp-sum">${esc(plainSummary(w, isDemo ? null : json.generatedAt))}</p>
       ${isDemo ? `<p class="demo-note">${DEMO_NOTE}</p>` : ''}
       <ul class="tx-list">${ordered.map((t) => `<li class="tx ${toneOf(t)}"><span class="tx-s">${esc(STATUS_WORD[t.status] || t.status)}</span><span class="tx-w">${esc(plainSource(t))}</span><code class="tx-h">${esc(shortHash(t.hash))}</code><span class="tx-t">${esc(utcTime(t.time))}</span></li>`).join('')}</ul>
       <p class="sheet-foot"><a class="btn btn-2" href="/report/sample">Open the full report</a></p>
@@ -170,7 +178,7 @@ export function landing({ site, token, json, isDemo, css }) {
     ['Can an agent fool it?', '<p>An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>'],
     ['What does it work with?', '<p>Claude Code session logs (<code>.jsonl</code>), including subagent transcripts and Foundry <code>broadcast/</code> files. EOA wallets only. Robinhood Chain by default; any EVM RPC with <code>--rpc</code> (then limits apply, unmeasured).</p>'],
     ['Do I need the coin?', `<p>No. The free CLI never needs the coin. It only pays for a signed report: burn ${esc(burnText(token))} from the audited wallet, and our server re-checks the chain facts and signs them.</p>`],
-    ['How do I check the numbers?', '<p><code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>'],
+    ['How do I check the numbers?', '<p><code>cast tx &lt;hash&gt;</code> reproduces each line. <code>cast nonce &lt;wallet&gt;</code> prints the live count, which only rises after the audit.</p>'],
     ['Has it been audited?', '<p>No. Not audited.</p>'],
   ];
   const faq = `<section class="sec s-paper" id="faq"><div class="wrap two">
@@ -212,11 +220,13 @@ export function report({ site, json, isDemo, css }) {
   const logName = (json.logs?.main?.[0] || '').split(/[\\/]/).pop().replace(/[^\w.\-]/g, '');
   const extras = [json.logs?.subagents ? `+${json.logs.subagents} subagents` : '', json.logs?.broadcast ? `${json.logs.broadcast} broadcast file` : ''].filter(Boolean).join(', ');
   const realNote = `Real session run by the Chainfess team on Robinhood Chain, ${utcDate(s.tStart)}. Wallet ${shortAddr(w?.address)} is the team wallet. An agent sent two 0-ETH self-transfers. A third 0-ETH self-transfer was sent from a second terminal, outside the agent session, while the session was open: that is the line marked "not in this log". It was done on purpose to show what a finding looks like. The "${w?.uBefore ?? 0} before" are the wallet's first two transactions, nonces 0 and 1: an earlier agent session sent them about ten minutes before this one, and they are in that session's log, not in this one.`;
+  const tx = (h, label) => `<a href="${EXPLORER}/tx/${h}" rel="noopener">${label}</a>`;
+  const laterNote = `This is a dated snapshot: the nonce was ${esc(w?.nonce)} at audit time, ${utcDate(json.generatedAt)} ${utcTime(json.generatedAt)}. Later transactions raise the live value. The next three, nonces 5 to 7, were the burn test on staging: ${tx(LATER_TXS.deploy, 'a test token deployed')}, ${tx(LATER_TXS.fullBurn, 'a full burn')} and ${tx(LATER_TXS.shortBurn, 'a short burn')}. That token is BPTEST, made for this test. It is not $CFESS.`;
   const gapCount = json.scan?.gaps?.length ?? 0;
   const body = `<main class="doc rp"><div class="wrap-n">
     <header class="doc-h"><h1>Sample report</h1>
-      <p class="rp-big">${esc(plainSummary(w))}</p>
-      ${isDemo ? `<p class="demo-note">${DEMO_NOTE} These hashes are not on chain.</p>` : `<p class="lead">${esc(realNote)}</p>`}
+      <p class="rp-big">${esc(plainSummary(w, isDemo ? null : json.generatedAt))}</p>
+      ${isDemo ? `<p class="demo-note">${DEMO_NOTE} These hashes are not on chain.</p>` : `<p class="lead">${esc(realNote)}</p><p class="lead">${laterNote}</p>`}
     </header>
     <figure class="rp-fig">${renderStrip(json)}</figure>
     ${group('Findings', rows.filter((t) => t.finding), 'Unaccounted means "not in this log". A human, a cron job or another session on the same wallet produces the same line. Chainfess does not say who sent it.')}
@@ -231,7 +241,7 @@ export function report({ site, json, isDemo, css }) {
         <div><dt>Session</dt><dd>${utcDate(s.tStart)} ${utcTime(s.tStart)} to ${utcTime(s.tEnd)}</dd></div>
         <div><dt>Blocks</dt><dd>${num(s.startBlock)} to ${num(s.endBlock)} (${num(s.blocks)} blocks)</dd></div>
         <div><dt>Scanned</dt><dd>${num(json.scan?.scannedBlocks)} blocks in ${gapCount} gap${gapCount === 1 ? '' : 's'}</dd></div>
-        <div><dt>Nonce line</dt><dd>${esc(nonceLine(w))}</dd></div>
+        <div><dt>Nonce at audit time</dt><dd>${esc(nonceLine(w))}</dd></div>
       </dl>
     </section>
     <footer class="rp-f">
@@ -239,7 +249,7 @@ export function report({ site, json, isDemo, css }) {
       ${json.summary?.localOnlyHashes ? `<p>Not looked up, stays local: ${num(json.summary.localOnlyHashes)} 32-byte ${json.summary.localOnlyHashes === 1 ? 'value' : 'values'} with nothing saying ${json.summary.localOnlyHashes === 1 ? 'it is' : 'they are'} a tx hash. Never sent to the RPC; matched on this machine against the wallet's transactions found by the scan.</p>` : ''}
       ${json.logs?.otherOverlapping ? `<p>${json.logs.otherOverlapping} other session logs overlap this range; add them with <code>--log</code> or <code>--all-sessions</code> before drawing conclusions.</p>` : ''}
       <p>Not audited. Nothing is prevented. An agent with shell access can edit its own local log; chain facts stay true, log-based lines then mislead.</p>
-      ${isDemo ? '' : `<p>Verify the rules yourself: <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>${copyBox(`cast nonce ${w?.address} --rpc-url ${RPC}`)}`}
+      ${isDemo ? '' : `<p>Verify it yourself: <code>cast tx &lt;hash&gt;</code> reproduces each row above. <code>cast nonce &lt;wallet&gt;</code> prints the live count, which is at least ${w?.nonce} because later transactions raise it.</p>${copyBox(`cast nonce ${w?.address} --rpc-url ${RPC}`)}`}
     </footer>
   </div></main>`;
   return shell({
@@ -339,7 +349,7 @@ export function docs({ site, css, publicKey, token }) {
       <p>Optional: <code>${c} hook install --wallet 0x…</code> adds a SessionEnd hook that audits automatically. <code>hook uninstall</code> removes it and <code>hook status</code> shows it.</p>
     </section>
     <section id="verify"><h2>Verify yourself</h2>
-      <p>Verify the rules yourself: <code>cast tx &lt;hash&gt;</code> and <code>cast nonce &lt;wallet&gt;</code> reproduce every number.</p>
+      <p>Verify the rules yourself: <code>cast tx &lt;hash&gt;</code> reproduces each line. <code>cast nonce &lt;wallet&gt;</code> prints the live count, which only rises after the audit.</p>
       ${copyBox(`cast tx <hash> --rpc-url ${RPC}`)}${copyBox(`cast nonce <wallet> --rpc-url ${RPC}`)}
     </section>
     <section id="signed"><h2>Signed report</h2>
