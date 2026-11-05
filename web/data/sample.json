@@ -2,12 +2,12 @@
   "v": 1,
   "tool": "chainfess",
   "toolVersion": "0.1.0",
-  "demo": true,
-  "generatedAt": "2026-11-04T12:00:00Z",
+  "demo": false,
+  "generatedAt": "2026-11-05T05:14:46Z",
   "chainId": 4663,
   "logs": {
     "main": [
-      "session.jsonl"
+      "b1cd1c6a-7acb-40d9-a0c4-293a4b2446c6.jsonl"
     ],
     "subagents": 0,
     "toolResults": 0,
@@ -20,76 +20,77 @@
     "skippedToolResults": 0,
     "skippedBroadcast": 0,
     "broadcastTruncated": false,
-    "withheldCandidates": 0,
     "notLookedUp": 0,
     "note": null
   },
   "session": {
-    "tStart": "2026-11-04T09:40:00Z",
-    "tEnd": "2026-11-04T09:54:00Z",
-    "startBlock": 99918943,
-    "endBlock": 99928471,
-    "blocks": 9529,
+    "tStart": "2026-11-05T05:09:42Z",
+    "tEnd": "2026-11-05T05:11:02Z",
+    "startBlock": 106481612,
+    "endBlock": 106483908,
+    "blocks": 2297,
     "note": null
   },
   "wallets": [
     {
-      "address": "0xdEA1a1A1A1A1A1A1a1A1a1A1A1A1a1a1A1A1a1de",
-      "nonce": 9,
-      "inLog": 1,
-      "notInLog": 8,
+      "address": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
+      "nonce": 5,
+      "inLog": 2,
+      "notInLog": 3,
       "uIn": 1,
-      "uOut": 7,
+      "uOut": 2,
       "uAfter": 0,
-      "uBefore": 7,
+      "uBefore": 2,
       "neverSent": false
     }
   ],
   "scan": {
-    "plannedBlocks": 9529,
-    "scannedBlocks": 7162,
+    "plannedBlocks": 1049,
+    "scannedBlocks": 540,
     "gaps": [
       {
-        "from": 99918943,
-        "to": 99928471
+        "from": 106481612,
+        "to": 106482660
       }
     ],
     "unscanned": [],
-    "seconds": 0,
-    "requests": 88,
+    "seconds": 3.6,
+    "blocksPerSec": 149,
+    "requests": 23,
     "fallbackUsed": false
   },
   "summary": {
-    "findings": 2,
-    "accounted": 1,
+    "findings": 1,
+    "accounted": 2,
     "partial": 0,
     "unaccounted": 1,
-    "foreignSigner": 1,
+    "foreignSigner": 0,
     "preSession": 0,
     "postSession": 0,
     "pending": 0,
     "recentOther": 0,
     "observed": 1,
     "unresolvedHashes": 0,
+    "localOnlyHashes": 28,
     "mentioned": {
-      "final": 0,
+      "final": 2,
       "text": 0,
-      "none": 2
+      "none": 1
     }
   },
   "txs": [
     {
-      "hash": "0x92b9e5a06df6044d67d658b7c163a105c31041bd43a113e9c3a3826e647ec6d8",
+      "hash": "0x785ef4cc83dd6de4fe31000e7d210cc4f4ac325e34442cfe05403e158c3dbdc6",
       "status": "unaccounted",
       "finding": true,
-      "from": "0xdEA1a1A1A1A1A1A1a1A1a1A1A1A1a1a1A1A1a1de",
-      "to": "0x5E5e5e5e5e5e5e5e5e5E5E5e5E5E5e5E5E5E5eEd",
+      "from": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
+      "to": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
       "toLabel": "eoa",
-      "nonce": 8,
-      "block": 99925962,
-      "time": "2026-11-04T09:51:40Z",
-      "valueWei": "250000000000000000",
-      "valueEth": "0.25",
+      "nonce": 3,
+      "block": 106481975,
+      "time": "2026-11-05T05:09:49Z",
+      "valueWei": "0",
+      "valueEth": "0",
       "reverted": false,
       "contractCreation": false,
       "createdAddress": null,
@@ -101,68 +102,68 @@
       "pattern": null
     },
     {
-      "hash": "0xa51161f809ec4dc3cc2e9abb17549184e4cf02ba5b5a35ea75e035df2ee0dc7c",
-      "status": "foreign-signer",
-      "finding": true,
-      "from": "0x5E5e5e5e5e5e5e5e5e5E5E5e5E5E5e5E5E5E5eEd",
-      "to": "0x77777777777777777777777777777777777777C0",
-      "toLabel": "contract",
-      "nonce": 41,
-      "block": 99924443,
-      "time": "2026-11-04T09:49:02Z",
-      "valueWei": "0",
-      "valueEth": "0",
-      "reverted": false,
-      "contractCreation": false,
-      "createdAddress": null,
-      "mentioned": "none",
-      "source": {
-        "kind": "tool_result",
-        "line": 7
-      },
-      "pattern": "cast-send"
-    },
-    {
-      "hash": "0x7485fc9a91208a06a1442ca82f0a4c7b6e0101cb2ae7c0b683331197aacc8ae5",
+      "hash": "0xb820bd230867624b82ef7d53a63b451706731f57bdcfe4f84f4ac441773ae906",
       "status": "accounted",
       "finding": false,
-      "from": "0xdEA1a1A1A1A1A1A1a1A1a1A1A1A1a1a1A1A1a1de",
-      "to": "0x77777777777777777777777777777777777777C0",
-      "toLabel": "contract",
-      "nonce": 7,
-      "block": 99920404,
-      "time": "2026-11-04T09:42:02Z",
-      "valueWei": "10000000000000000",
-      "valueEth": "0.01",
-      "reverted": false,
-      "contractCreation": false,
-      "createdAddress": null,
-      "mentioned": "none",
-      "source": {
-        "kind": "tool_result",
-        "line": 3
-      },
-      "pattern": "cast-send"
-    },
-    {
-      "hash": "0x3928db72ff86102897ced08fab73a41f2654295f298154c16929be838d36ef42",
-      "status": "observed",
-      "finding": false,
-      "from": "0x0B0b0b0b0B0B0B0B0b0b0b0b0B0B0B0B0B0b0B0b",
-      "to": "0x77777777777777777777777777777777777777C0",
-      "toLabel": "contract",
-      "nonce": 3,
-      "block": 90000000,
-      "time": "2026-10-23T11:06:40Z",
+      "from": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
+      "to": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
+      "toLabel": "eoa",
+      "nonce": 2,
+      "block": 106481951,
+      "time": "2026-11-05T05:09:47Z",
       "valueWei": "0",
       "valueEth": "0",
       "reverted": false,
       "contractCreation": false,
       "createdAddress": null,
-      "mentioned": "none",
+      "mentioned": "final",
       "source": {
-        "kind": "tool_use",
-        "line": 4
+        "kind": "tool_result",
+        "line": 24
+      },
+      "pattern": null
+    },
+    {
+      "hash": "0x5513cd8dd54a113100313613823f08bf350b2152c01c406e9df7265400191838",
+      "status": "accounted",
+      "finding": false,
+      "from": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
+      "to": "0x1351AbcA903f9E28B59708Af47c0bF0521C47FD3",
+      "toLabel": "eoa",
+      "nonce": 4,
+      "block": 106482660,
+      "time": "2026-11-05T05:10:58Z",
+      "valueWei": "0",
+      "valueEth": "0",
+      "reverted": false,
+      "contractCreation": false,
+      "createdAddress": null,
+      "mentioned": "final",
+      "source": {
+        "kind": "tool_result",
+        "line": 51
+      },
+      "pattern": null
+    },
+    {
+      "hash": "0x665378ecaf8538681a6b6f0752f572e0d072ecc36767e1821275d922729ab894",
+      "status": "observed",
+      "finding": false,
+      "from": "0xB3F8D0C709ead428cfC1FE919eaBC4e72D559e9d",
+      "to": "0x1d29B753fdCF82F73e54088F20CfC3915eDF175a",
+      "toLabel": "contract",
+      "nonce": 133312,
+      "block": 105356339,
+      "time": "2026-11-03T20:55:14Z",
+      "valueWei": "0",
+      "valueEth": "0",
+      "reverted": false,
+      "contractCreation": false,
+      "createdAddress": null,
+      "mentioned": "final",
+      "source": {
+        "kind": "text",
+        "line": 3
       },
       "pattern": null
     }

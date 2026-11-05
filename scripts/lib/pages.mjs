@@ -211,7 +211,7 @@ export function report({ site, json, isDemo, css }) {
   const group = (name, list, intro = '') => (list.length ? `<section class="rp-g"><h2>${esc(name)}</h2>${intro ? `<p>${intro}</p>` : ''}${list.map(txRow).join('')}</section>` : '');
   const logName = (json.logs?.main?.[0] || '').split(/[\\/]/).pop().replace(/[^\w.\-]/g, '');
   const extras = [json.logs?.subagents ? `+${json.logs.subagents} subagents` : '', json.logs?.broadcast ? `${json.logs.broadcast} broadcast file` : ''].filter(Boolean).join(', ');
-  const realNote = `Real session run by the Chainfess team on Robinhood Chain, ${utcDate(s.tStart)}. Wallet ${shortAddr(w?.address)} is the team wallet. An agent sent two 0-ETH self-transfers. A third 0-ETH self-transfer was sent from a second terminal, outside the agent session, while the session was open: that is the line marked "not in this log". It was done on purpose to show what a finding looks like.`;
+  const realNote = `Real session run by the Chainfess team on Robinhood Chain, ${utcDate(s.tStart)}. Wallet ${shortAddr(w?.address)} is the team wallet. An agent sent two 0-ETH self-transfers. A third 0-ETH self-transfer was sent from a second terminal, outside the agent session, while the session was open: that is the line marked "not in this log". It was done on purpose to show what a finding looks like. The "${w?.uBefore ?? 0} before" are the wallet's first two transactions, nonces 0 and 1: an earlier agent session sent them about ten minutes before this one, and they are in that session's log, not in this one.`;
   const gapCount = json.scan?.gaps?.length ?? 0;
   const body = `<main class="doc rp"><div class="wrap-n">
     <header class="doc-h"><h1>Sample report</h1>
