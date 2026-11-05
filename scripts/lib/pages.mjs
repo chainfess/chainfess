@@ -85,7 +85,7 @@ const STATUS_WORD = { accounted: 'Accounted', partial: 'Partial', unaccounted: '
 function plainSummary(w, auditedAt) {
   if (!w) return '';
   if (w.neverSent) return 'This wallet has never sent a transaction.';
-  const lead = auditedAt ? `At audit time, ${utcDate(auditedAt)} ${utcTime(auditedAt)}, this wallet had sent` : 'This wallet has sent';
+  const lead = auditedAt ? 'At audit time this wallet had sent' : 'This wallet has sent';
   const s = [`${lead} ${w.nonce} transaction${w.nonce === 1 ? '' : 's'}.`, `${w.inLog} ${w.inLog === 1 ? 'appears' : 'appear'} in this log.`];
   if (w.uIn) s.push(`${w.uIn} inside this session ${w.uIn === 1 ? 'does' : 'do'} not.`);
   const before = w.uBefore ?? 0, after = w.uAfter ?? (w.uBefore == null ? w.uOut : 0);
